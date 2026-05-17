@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Chat - প্রবেশদ্বার</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #d7dbdd; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-top: 6px solid #075e54; }
+        .title-box { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .title-box h2 { color: #075e54; margin: 0; font-size: 22px; }
+        .title-box p { color: #666; font-size: 14px; margin: 5px 0 0 0; }
+        input { width: 92%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+        button { width: 100%; padding: 12px; background: #128c7e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
+        .link { text-align: center; margin-top: 15px; color: #3498db; cursor: pointer; font-size: 14px; text-decoration: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div id="loginPlate" class="card">
+        <div class="title-box">
+            <h2>ফ্যামিলি চ্যাট লগইন</h2>
+            <p>আপনার অ্যাকাউন্টে প্রবেশ করুন</p>
+        </div>
+        <input type="text" id="lPhone" placeholder="মোবাইল নাম্বার দিন">
+        <input type="password" id="lPass" placeholder="পাসওয়ার্ড দিন">
+        <button onclick="login()">লগইন করুন</button>
+        <div class="link" onclick="showReg()">নতুন অ্যাকাউন্ট তৈরি করুন</div>
+        <div class="link" onclick="showForgot()" style="color: #e67e22;">পাসওয়ার্ড ভুলে গেছেন?</div>
+    </div>
+
+    <div id="regPlate" class="card" style="display:none;">
+        <div class="title-box">
+            <h2 style="color: #28a745;">ফ্যামিলি চ্যাট অ্যাকাউন্ট খুলুন</h2>
+            <p>নতুন সদস্য হিসেবে যোগ দিন</p>
+        </div>
+        <input type="text" id="rName" placeholder="আপনার পুরো নাম দিন">
+        <input type="text" id="rPhone" placeholder="মোবাইল নাম্বার দিন">
+        <input type="password" id="rPass" placeholder="একটি নতুন পাসওয়ার্ড দিন">
+        <button onclick="register()" style="background: #28a745;">অ্যাকাউন্ট তৈরি করুন</button>
+        <div class="link" onclick="showLogin()" style="color: #e74c3c;">অ্যাকাউন্ট আছে? লগইন করুন</div>
+    </div>
+
+    <div id="forgotPlate" class="card" style="display:none;">
+        <div class="title-box">
+            <h2 style="color: #e67e22;">পাসওয়ার্ড রিসেট</h2>
+            <p>আপনার নতুন পাসওয়ার্ড সেট করুন</p>
+        </div>
+        <input type="text" id="fPhone" placeholder="আপনার রেজিস্টার্ড নাম্বার">
+        <input type="password" id="fNewPass" placeholder="নতুন পাসওয়ার্ড দিন">
+        <button onclick="resetPass()" style="background: #e67e22;">পাসওয়ার্ড আপডেট করুন</button>
+        <div class="link" onclick="showLogin()">লগইন পেজে ফিরে যান</div>
+    </div>
+
+    <script>
+        function showReg() { hideAll(); document.getElementById('regPlate').style.display='block'; }
+        function showLogin() { hideAll(); document.getElementById('loginPlate').style.display='block'; }
+        function showForgot() { hideAll(); document.getElementById('forgotPlate').style.display='block'; }
+        function hideAll() { 
+            document.getElementById('loginPlate').style.display='none';
+            document.getElementById('regPlate').style.display='none';
+            document.getElementById('forgotPlate').style.display='none';
+        }
+
+        // রেজিস্ট্রেশন (MongoDB Ready)
+        async function register() {
+            const name = document.getElementById('rName').value;
+            const phone = document.getElementById('rPhone').value;
+            const pass = document.getElementById('rPass').value;
+            if(!name || !phone || !pass) return alert("দয়া করে সবগুলো ঘর পূরণ করুন!");
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({userName: name, userNumber: phone, userPassword: pass})
+                });
+                const data = await res.json();
+                alert(data.message);
+                if(data.success) window.location.assign("home.html");
+            } catch (err) {
+                alert("সার্ভার কানেকশন নেই! এটি পরে MongoDB কানেক্ট করলে কাজ করবে।");
+            }
+        }
+
+        // লগইন (MongoDB Ready)
+        async function login() {
+            const phone = document.getElementById('lPhone').value;
+            const pass = document.getElementById('lPass').value;
+            if(!phone || !pass) return alert("দয়া করে নাম্বার ও পাসওয়ার্ড দিন!");
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({userNumber: phone, userPassword: pass})
+                });
+                const data = await res.json();
+                if(data.success) {
+                    // লগইন সেশন সেভ করা (পরে লাগবে)
+                    localStorage.setItem('loggedInUser', phone);
+                    window.location.assign("home.html");
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert("সার্ভার কানেকশন নেই! বর্তমানে এটি কেবল ডিজাইনের জন্য কাজ করবে।");
+                // টেস্ট করার জন্য সরাসরি হোম পেজে যাওয়ার রাস্তা:
+                // window.location.assign("home.html");
+            }
+        }
+
+        // পাসওয়ার্ড রিসেট (MongoDB Ready)
+        async function resetPass() {
+            const phone = document.getElementById('fPhone').value;
+            const pass = document.getElementById('fNewPass').value;
+            if(!phone || !pass) return alert("সবগুলো ঘর পূরণ করুন!");
+
+            try {
+                const res = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({userNumber: phone, newPassword: pass})
+                });
+                const data = await res.json();
+                alert(data.message);
+                if(data.success) showLogin();
+            } catch (err) {
+                alert("সার্ভার কানেকশন নেই!");
+            }
+        }
+    </script>
+</body>
+</html>

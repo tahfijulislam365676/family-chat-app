@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Chat - মেসেঞ্জার</title>
+    <style>
+        /* আপনার ডিজাইন অপরিবর্তিত রাখা হয়েছে */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #e5ddd5; display: flex; flex-direction: column; height: 100vh; }
+        header { background: #075e54; color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .back-btn { font-size: 24px; cursor: pointer; text-decoration: none; color: white; }
+        .avatar { width: 40px; height: 40px; background: #128c7e; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        .call-icons span { font-size: 22px; cursor: pointer; margin-left: 15px; }
+        #msgArea { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        .msg { max-width: 75%; padding: 8px 12px; border-radius: 10px; font-size: 15px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .received { background: white; align-self: flex-start; border-top-left-radius: 0; }
+        .sent { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        footer { background: #f0f0f0; padding: 10px; display: flex; align-items: center; gap: 10px; }
+        #messageInput { flex: 1; padding: 12px 15px; border-radius: 25px; border: none; outline: none; font-size: 16px; }
+        #sendBtn { background: #128c7e; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; }
+        .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 200; flex-direction: column; align-items: center; justify-content: center; }
+        video { width: 90%; border-radius: 15px; border: 2px solid #128c7e; background: #222; }
+        .end-call-btn { margin-top: 30px; background: #ff3b30; color: white; border: none; padding: 15px 40px; border-radius: 30px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="user-info">
+            <a href="home.html" class="back-btn">←</a>
+            <div class="avatar" id="avatarIcon">?</div>
+            <div>
+                <h4 id="chattingWithName">লোড হচ্ছে...</h4>
+                <small style="opacity: 0.8;">অনলাইন</small>
+            </div>
+        </div>
+        <div class="call-icons">
+            <span onclick="startCall('অডিও')">📞</span>
+            <span onclick="startCall('ভিডিও')">📹</span>
+        </div>
+    </header>
+
+    <div id="msgArea"></div>
+
+    <div id="callOverlay" class="call-overlay">
+        <h2 id="callStatus" style="margin-bottom: 20px;">কল হচ্ছে...</h2>
+        <video id="localVideo" autoplay muted playsinline></video>
+        <button class="end-call-btn" onclick="endCall()">কল কাটুন</button>
+    </div>
+
+    <footer>
+        <input type="text" id="messageInput" placeholder="একটি মেসেজ লিখুন...">
+        <button id="sendBtn" onclick="sendMessage()">➤</button>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        const socket = io();
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const friendName = urlParams.get('name'); 
+        const friendPhone = urlParams.get('phone'); 
+        const myPhone = localStorage.getItem('loggedInUser'); 
+
+        // ১. হেডার সেটআপ
+        if(friendName) {
+            document.getElementById('chattingWithName').innerText = friendName;
+            document.getElementById('avatarIcon').innerText = friendName[0].toUpperCase();
+        }
+
+        // ২. সকেট রুমে জয়েন (নিজের নাম্বার দিয়ে)
+        if(myPhone) {
+            socket.emit('join', myPhone);
+        }
+
+        // ৩. মেসেজ লোড করার ফাংশন
+        async function loadOldMessages() {
+            if(!myPhone || !friendPhone) return;
+            try {
+                const res = await fetch(`/api/get-messages?from=${myPhone}&to=${friendPhone}`);
+                const data = await res.json();
+                if(data.success) {
+                    const area = document.getElementById('msgArea');
+                    area.innerHTML = ""; 
+                    data.messages.forEach(m => {
+                        appendMessage(m.message, m.sender === myPhone ? 'sent' : 'received');
+                    });
+                }
+            } catch (err) { 
+                console.error("Old messages could not be loaded."); 
+            }
+        }
+        
+        window.onload = loadOldMessages;
+
+        // ৪. মেসেজ পাঠানো
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if(message !== "" && myPhone && friendPhone) {
+                const data = { from: myPhone, to: friendPhone, msg: message };
+                socket.emit('send-msg', data); 
+                appendMessage(message, 'sent');
+                input.value = "";
+            }
+        }
+
+        function appendMessage(msg, type) {
+            const area = document.getElementById('msgArea');
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.innerText = msg;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        // ৫. রিয়েল-টাইম মেসেজ রিসিভ
+        socket.on('receive-msg', (data) => {
+            if(data.from === friendPhone) {
+                appendMessage(data.msg, 'received');
+            }
+        });
+
+        // ৬. ভিডিও/অডিও কল (ইন্টারনেটে কাজ করার জন্য STUN কনফিগারেশন)
+        let myStream;
+        const iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        async function startCall(type) {
+            try {
+                document.getElementById('callStatus').innerText = `${friendName}-কে ${type} কল করা হচ্ছে...`;
+                document.getElementById('callOverlay').style.display = 'flex';
+                
+                myStream = await navigator.mediaDevices.getUserMedia({
+                    video: type === 'ভিডিও',
+                    audio: true
+                });
+                
+                document.getElementById('localVideo').srcObject = myStream;
+                
+                // সার্ভারের মাধ্যমে কল সিগন্যাল পাঠানো
+                socket.emit('call-user', { from: myPhone, to: friendPhone, type: type });
+
+            } catch (err) {
+                alert("ক্যামেরা বা মাইক্রোফোন পারমিশন প্রয়োজন!");
+                document.getElementById('callOverlay').style.display = 'none';
+            }
+        }
+
+        function endCall() {
+            if(myStream) {
+                myStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('callOverlay').style.display = 'none';
+            socket.emit('end-call', { to: friendPhone });
+        }
+
+        // কল রিসিভ করা
+        socket.on('incoming-call', (data) => {
+            if(data.from === friendPhone) {
+                const accept = confirm(`${friendName} থেকে একটি ${data.type} কল আসছে। রিসিভ করবেন?`);
+                if(accept) {
+                    startCall(data.type);
+                }
+            }
+        });
+
+        // এন্টার চাপলে মেসেজ যাবে
+        document.getElementById('messageInput').addEventListener("keypress", function(e) {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
+</body>
+</html>
