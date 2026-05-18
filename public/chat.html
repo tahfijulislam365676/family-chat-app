@@ -62,8 +62,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
 
     <script>
-        // সংশোধিত সকেট কানেকশন যা অনলাইনে ডেটা ট্রান্সফার নিশ্চিত করবে
-        const socket = io({
+        // সকেট কানেকশন আপনার Render লিংকে সেট করা হয়েছে
+        const socket = io("https://family-chat-8jfi.onrender.com", {
             transports: ['websocket', 'polling'],
             upgrade: true
         });
@@ -89,13 +89,13 @@
             document.getElementById('avatarIcon').innerText = friendName[0].toUpperCase();
         }
 
-        // সকেট রুমে জয়েন করা নিশ্চিত করা
-        if(myPhone) {
-            socket.on('connect', () => {
-                console.log("সার্ভারে যুক্ত হয়েছি");
+        // কানেকশন হওয়ার সাথে সাথে জয়েন মেসেজ পাঠানো
+        socket.on('connect', () => {
+            if(myPhone) {
+                console.log("সার্ভারে যুক্ত হয়েছি");
                 socket.emit('join', myPhone);
-            });
-        }
+            }
+        });
 
         async function loadOldMessages() {
             if(!myPhone || !friendPhone) return;
@@ -109,7 +109,7 @@
                         appendMessage(m.message, m.sender === myPhone ? 'sent' : 'received');
                     });
                 }
-            } catch (err) { console.error("মেসেজ লোড করা যায়নি"); }
+            } catch (err) { console.error("মেসেজ লোড করা যায়নি"); }
         }
         
         window.onload = loadOldMessages;
@@ -134,14 +134,12 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // রিয়েল টাইম মেসেজ রিসিভ করা
         socket.on('receive-msg', (data) => {
             if(data.from === friendPhone) {
                 appendMessage(data.msg, 'received');
             }
         });
 
-        // ভিডিও কল শুরু করা
         async function startCall(type) {
             try {
                 myStream = await navigator.mediaDevices.getUserMedia({
@@ -175,7 +173,6 @@
             }
         }
 
-        // কল রিসিভ করা
         socket.on('incoming-call', async (data) => {
             if(data.from === friendPhone) {
                 const accept = confirm(`${friendName} থেকে ${data.type} কল আসছে। রিসিভ করবেন?`);
@@ -206,7 +203,7 @@
 
                         peer.signal(data.signal);
                     } catch (e) {
-                        alert("কল রিসিভ করতে সমস্যা হয়েছে!");
+                        alert("কল রিসিভ করতে সমস্যা হয়েছে!");
                     }
                 }
             }

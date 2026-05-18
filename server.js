@@ -6,7 +6,7 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// সকেট কনফিগারেশন: অনলাইন সার্ভারে স্ট্যাবল কানেকশনের জন্য আপডেট করা হয়েছে
+// সকেট কনফিগারেশন: অনলাইন সার্ভারে স্ট্যাবল কানেকশনের জন্য ফিক্স করা হয়েছে
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
@@ -15,7 +15,7 @@ const io = socketIo(server, {
 app.use(express.static('public'));
 app.use(express.json());
 
-// --- MongoDB Atlas অনলাইন কানেকশন (আপনার দেওয়া পাসওয়ার্ড ও লিংক অনুযায়ী) ---
+// --- MongoDB Atlas অনলাইন কানেকশন ---
 const DB_URI = "mongodb+srv://tahfijulislam365676_db_user:J98w7SWNscFksfRG@cluster0.9pu3xn3.mongodb.net/familyChat?retryWrites=true&w=majority";
 
 mongoose.connect(DB_URI)
@@ -24,7 +24,7 @@ mongoose.connect(DB_URI)
         console.log("ডাটাবেস কানেকশনে সমস্যা হচ্ছে! এরর টাইপ:", err.name);
     });
 
-// --- ডাটাবেস স্কিমা (অপরিবর্তিত) ---
+// --- ডাটাবেস স্কিমা ---
 const UserSchema = new mongoose.Schema({
     userName: String,
     userNumber: { type: String, unique: true },
@@ -47,7 +47,7 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// --- এপিআই রাউটস (আপনার সব ফাংশন আগের মতোই রাখা হয়েছে) ---
+// --- এপিআই রাউটস ---
 app.post('/api/signup', async (req, res) => {
     try {
         const newUser = new User(req.body);
@@ -113,12 +113,11 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
-// --- সকেট লজিক (অনলাইন ডেটা ট্রান্সফার ফিক্স) ---
+// --- সকেট লজিক (রিয়েল-টাইম ডাটা হ্যান্ডলিং) ---
 let onlineUsers = {}; 
 
 io.on('connection', (socket) => {
     
-    // ইউজার জয়েন করলে তাকে নাম্বার অনুযায়ী ম্যাপে রাখা
     socket.on('join', (myNumber) => {
         if (myNumber) {
             onlineUsers[myNumber] = socket.id; 
@@ -126,7 +125,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // মেসেজ আদান-প্রদান (সরাসরি সকেট আইডি ব্যবহার করে)
     socket.on('send-msg', async (data) => {
         try {
             const newMsg = new Message({
@@ -145,7 +143,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ভিডিও ও অডিও কল হ্যান্ডলিং
     socket.on('call-user', (data) => {
         const targetId = onlineUsers[data.to];
         if (targetId) {
