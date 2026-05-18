@@ -5,7 +5,12 @@ const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+
+// সকেট কনফিগারেশন আপডেট করা হয়েছে অনলাইন সার্ভারের জন্য
+const io = socketIo(server, {
+    cors: { origin: "*" },
+    transports: ['websocket', 'polling']
+});
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -108,11 +113,16 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
-// --- সকেট লজিক (ভিডিও কল সংশোধনসহ) ---
+// --- সকেট লজিক (নিখুঁত সংশোধন) ---
+let users = {}; // একটি অবজেক্টে নাম্বার এবং সকেট আইডি জমা রাখা হবে
+
 io.on('connection', (socket) => {
     socket.on('join', (myNumber) => {
-        socket.join(myNumber);
-        console.log(myNumber + " রুমে জয়েন করেছে");
+        if (myNumber) {
+            socket.join(myNumber); // নাম্বার দিয়ে একটি ভার্চুয়াল রুম তৈরি
+            users[myNumber] = socket.id; // নাম্বারকে সকেট আইডির সাথে ম্যাপ করা
+            console.log(myNumber + " রুমে জয়েন করেছে। সকেট আইডি: " + socket.id);
+        }
     });
 
     socket.on('send-msg', async (data) => {
@@ -123,17 +133,20 @@ io.on('connection', (socket) => {
                 message: data.msg
             });
             await newMsg.save();
+            
+            // receiver এর নাম্বার ওয়ালা রুমে মেসেজ পাঠানো
             io.to(data.to).emit('receive-msg', data);
         } catch (err) {
             console.log("মেসেজ সেভ করতে সমস্যা হয়েছে");
         }
     });
 
-    // ভিডিও কল শুরু (সংশোধিত: signalData এর বদলে সরাসরি signal পাঠানো হচ্ছে)
+    // ভিডিও কল শুরু
     socket.on('call-user', (data) => {
+        console.log(`কল রিকোয়েস্ট: ${data.from} থেকে ${data.to}`);
         io.to(data.to).emit('incoming-call', {
             from: data.from,
-            signal: data.signal || data.signalData, // দুই নামেই সাপোর্ট রাখা হলো
+            signal: data.signal || data.signalData,
             type: data.type
         });
     });
@@ -151,6 +164,13 @@ io.on('connection', (socket) => {
     });
     
     socket.on('disconnect', () => {
+        // ইউজার চলে গেলে লিস্ট থেকে মুছে ফেলা
+        for (let phone in users) {
+            if (users[phone] === socket.id) {
+                delete users[phone];
+                break;
+            }
+        }
         console.log("ইউজার ডিসকানেক্ট হয়েছে");
     });
 });
