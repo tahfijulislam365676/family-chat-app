@@ -6,7 +6,7 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// সকেট কনফিগারেশন আপডেট করা হয়েছে অনলাইন সার্ভারের জন্য
+// সকেট কনফিগারেশন আপডেট করা হয়েছে অনলাইন সার্ভারের জন্য
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
@@ -24,7 +24,7 @@ mongoose.connect(DB_URI)
         console.log("ডাটাবেস কানেকশনে সমস্যা হচ্ছে! এরর টাইপ:", err.name);
     });
 
-// --- ডাটাবেস স্কিমা (অপরিবর্তিত) ---
+// --- ডাটাবেস স্কিমা ---
 const UserSchema = new mongoose.Schema({
     userName: String,
     userNumber: { type: String, unique: true },
@@ -47,7 +47,7 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// --- এপিআই রাউটস (অপরিবর্তিত) ---
+// --- এপিআই রাউটস ---
 app.post('/api/signup', async (req, res) => {
     try {
         const newUser = new User(req.body);
@@ -114,14 +114,15 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // --- সকেট লজিক (নিখুঁত সংশোধন) ---
-let users = {}; // একটি অবজেক্টে নাম্বার এবং সকেট আইডি জমা রাখা হবে
+let onlineUsers = {}; // নাম্বার এবং সকেট আইডি ম্যাপ করার জন্য
 
 io.on('connection', (socket) => {
+    
     socket.on('join', (myNumber) => {
         if (myNumber) {
-            socket.join(myNumber); // নাম্বার দিয়ে একটি ভার্চুয়াল রুম তৈরি
-            users[myNumber] = socket.id; // নাম্বারকে সকেট আইডির সাথে ম্যাপ করা
-            console.log(myNumber + " রুমে জয়েন করেছে। সকেট আইডি: " + socket.id);
+            socket.join(myNumber); // রুমে জয়েন করানো
+            onlineUsers[myNumber] = socket.id; // আইডি সেভ করা
+            console.log(`ইউজার ${myNumber} অনলাইন। আইডি: ${socket.id}`);
         }
     });
 
@@ -134,16 +135,17 @@ io.on('connection', (socket) => {
             });
             await newMsg.save();
             
-            // receiver এর নাম্বার ওয়ালা রুমে মেসেজ পাঠানো
+            // সরাসরি receiver এর রুমে মেসেজ পাঠানো
             io.to(data.to).emit('receive-msg', data);
         } catch (err) {
-            console.log("মেসেজ সেভ করতে সমস্যা হয়েছে");
+            console.log("মেসেজ হ্যান্ডেল করতে সমস্যা হয়েছে");
         }
     });
 
     // ভিডিও কল শুরু
     socket.on('call-user', (data) => {
         console.log(`কল রিকোয়েস্ট: ${data.from} থেকে ${data.to}`);
+        // নিশ্চিত করা হচ্ছে যে receiver রুমে আছে কি না
         io.to(data.to).emit('incoming-call', {
             from: data.from,
             signal: data.signal || data.signalData,
@@ -152,11 +154,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('answer-call', (data) => {
+        // কল দাতার রুমে সিগন্যাল পাঠানো
         io.to(data.to).emit('call-accepted', data.signal);
-    });
-
-    socket.on('webrtc-signal', (data) => {
-        io.to(data.to).emit('webrtc-signal', data);
     });
 
     socket.on('end-call', (data) => {
@@ -164,14 +163,13 @@ io.on('connection', (socket) => {
     });
     
     socket.on('disconnect', () => {
-        // ইউজার চলে গেলে লিস্ট থেকে মুছে ফেলা
-        for (let phone in users) {
-            if (users[phone] === socket.id) {
-                delete users[phone];
+        for (let phone in onlineUsers) {
+            if (onlineUsers[phone] === socket.id) {
+                delete onlineUsers[phone];
                 break;
             }
         }
-        console.log("ইউজার ডিসকানেক্ট হয়েছে");
+        console.log("ইউজার অফলাইন হয়েছে");
     });
 });
 
