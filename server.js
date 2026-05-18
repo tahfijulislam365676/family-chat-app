@@ -47,7 +47,7 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// --- এপিআই রাউটস ---
+// --- এপিআই রাউটস (আপনার আগের সব ফাংশন ঠিক রাখা হয়েছে) ---
 app.post('/api/signup', async (req, res) => {
     try {
         const newUser = new User(req.body);
@@ -114,14 +114,13 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // --- সকেট লজিক (নিখুঁত সংশোধন) ---
-let onlineUsers = {}; // নাম্বার এবং সকেট আইডি ম্যাপ করার জন্য
+let onlineUsers = {}; 
 
 io.on('connection', (socket) => {
     
     socket.on('join', (myNumber) => {
         if (myNumber) {
-            socket.join(myNumber); // রুমে জয়েন করানো
-            onlineUsers[myNumber] = socket.id; // আইডি সেভ করা
+            onlineUsers[myNumber] = socket.id; // সরাসরি নাম্বার দিয়ে আইডি সেভ
             console.log(`ইউজার ${myNumber} অনলাইন। আইডি: ${socket.id}`);
         }
     });
@@ -135,41 +134,50 @@ io.on('connection', (socket) => {
             });
             await newMsg.save();
             
-            // সরাসরি receiver এর রুমে মেসেজ পাঠানো
-            io.to(data.to).emit('receive-msg', data);
+            // সরাসরি receiver এর সকেট আইডিতে পাঠানো
+            const targetId = onlineUsers[data.to];
+            if (targetId) {
+                io.to(targetId).emit('receive-msg', data);
+            }
         } catch (err) {
             console.log("মেসেজ হ্যান্ডেল করতে সমস্যা হয়েছে");
         }
     });
 
-    // ভিডিও কল শুরু
     socket.on('call-user', (data) => {
-        console.log(`কল রিকোয়েস্ট: ${data.from} থেকে ${data.to}`);
-        // নিশ্চিত করা হচ্ছে যে receiver রুমে আছে কি না
-        io.to(data.to).emit('incoming-call', {
-            from: data.from,
-            signal: data.signal || data.signalData,
-            type: data.type
-        });
+        const targetId = onlineUsers[data.to];
+        if (targetId) {
+            io.to(targetId).emit('incoming-call', {
+                from: data.from,
+                signal: data.signal || data.signalData,
+                type: data.type
+            });
+        }
     });
 
     socket.on('answer-call', (data) => {
-        // কল দাতার রুমে সিগন্যাল পাঠানো
-        io.to(data.to).emit('call-accepted', data.signal);
+        // data.to হলো যে কল করেছিল তার নাম্বার
+        const targetId = onlineUsers[data.to];
+        if (targetId) {
+            io.to(targetId).emit('call-accepted', data.signal);
+        }
     });
 
     socket.on('end-call', (data) => {
-        io.to(data.to).emit('call-ended');
+        const targetId = onlineUsers[data.to];
+        if (targetId) {
+            io.to(targetId).emit('call-ended');
+        }
     });
     
     socket.on('disconnect', () => {
         for (let phone in onlineUsers) {
             if (onlineUsers[phone] === socket.id) {
                 delete onlineUsers[phone];
+                console.log(`${phone} অফলাইন হয়েছে`);
                 break;
             }
         }
-        console.log("ইউজার অফলাইন হয়েছে");
     });
 });
 
