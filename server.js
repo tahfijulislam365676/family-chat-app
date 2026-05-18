@@ -6,7 +6,7 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// সকেট কনফিগারেশন আপডেট করা হয়েছে অনলাইন সার্ভারের জন্য
+// সকেট কনফিগারেশন: অনলাইন সার্ভারে স্ট্যাবল কানেকশনের জন্য আপডেট করা হয়েছে
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling']
@@ -15,7 +15,7 @@ const io = socketIo(server, {
 app.use(express.static('public'));
 app.use(express.json());
 
-// --- MongoDB Atlas অনলাইন কানেকশন ---
+// --- MongoDB Atlas অনলাইন কানেকশন (আপনার দেওয়া পাসওয়ার্ড ও লিংক অনুযায়ী) ---
 const DB_URI = "mongodb+srv://tahfijulislam365676_db_user:J98w7SWNscFksfRG@cluster0.9pu3xn3.mongodb.net/familyChat?retryWrites=true&w=majority";
 
 mongoose.connect(DB_URI)
@@ -24,7 +24,7 @@ mongoose.connect(DB_URI)
         console.log("ডাটাবেস কানেকশনে সমস্যা হচ্ছে! এরর টাইপ:", err.name);
     });
 
-// --- ডাটাবেস স্কিমা ---
+// --- ডাটাবেস স্কিমা (অপরিবর্তিত) ---
 const UserSchema = new mongoose.Schema({
     userName: String,
     userNumber: { type: String, unique: true },
@@ -47,7 +47,7 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// --- এপিআই রাউটস (আপনার আগের সব ফাংশন ঠিক রাখা হয়েছে) ---
+// --- এপিআই রাউটস (আপনার সব ফাংশন আগের মতোই রাখা হয়েছে) ---
 app.post('/api/signup', async (req, res) => {
     try {
         const newUser = new User(req.body);
@@ -113,18 +113,20 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
-// --- সকেট লজিক (নিখুঁত সংশোধন) ---
+// --- সকেট লজিক (অনলাইন ডেটা ট্রান্সফার ফিক্স) ---
 let onlineUsers = {}; 
 
 io.on('connection', (socket) => {
     
+    // ইউজার জয়েন করলে তাকে নাম্বার অনুযায়ী ম্যাপে রাখা
     socket.on('join', (myNumber) => {
         if (myNumber) {
-            onlineUsers[myNumber] = socket.id; // সরাসরি নাম্বার দিয়ে আইডি সেভ
+            onlineUsers[myNumber] = socket.id; 
             console.log(`ইউজার ${myNumber} অনলাইন। আইডি: ${socket.id}`);
         }
     });
 
+    // মেসেজ আদান-প্রদান (সরাসরি সকেট আইডি ব্যবহার করে)
     socket.on('send-msg', async (data) => {
         try {
             const newMsg = new Message({
@@ -134,29 +136,28 @@ io.on('connection', (socket) => {
             });
             await newMsg.save();
             
-            // সরাসরি receiver এর সকেট আইডিতে পাঠানো
             const targetId = onlineUsers[data.to];
             if (targetId) {
                 io.to(targetId).emit('receive-msg', data);
             }
         } catch (err) {
-            console.log("মেসেজ হ্যান্ডেল করতে সমস্যা হয়েছে");
+            console.log("মেসেজ প্রসেস করতে এরর!");
         }
     });
 
+    // ভিডিও ও অডিও কল হ্যান্ডলিং
     socket.on('call-user', (data) => {
         const targetId = onlineUsers[data.to];
         if (targetId) {
             io.to(targetId).emit('incoming-call', {
                 from: data.from,
-                signal: data.signal || data.signalData,
+                signal: data.signal,
                 type: data.type
             });
         }
     });
 
     socket.on('answer-call', (data) => {
-        // data.to হলো যে কল করেছিল তার নাম্বার
         const targetId = onlineUsers[data.to];
         if (targetId) {
             io.to(targetId).emit('call-accepted', data.signal);
@@ -174,7 +175,7 @@ io.on('connection', (socket) => {
         for (let phone in onlineUsers) {
             if (onlineUsers[phone] === socket.id) {
                 delete onlineUsers[phone];
-                console.log(`${phone} অফলাইন হয়েছে`);
+                console.log(`${phone} অফলাইন হয়েছে`);
                 break;
             }
         }
