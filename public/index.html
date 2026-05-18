@@ -3,145 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Chat - প্রবেশদ্বার</title>
+    <title>ফ্যামিলি চ্যাট — প্রবেশদ্বার</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #d7dbdd; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-top: 6px solid #075e54; }
-        .title-box { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .title-box h2 { color: #075e54; margin: 0; font-size: 22px; }
-        .title-box p { color: #666; font-size: 14px; margin: 5px 0 0 0; }
-        input { width: 92%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; outline: none; }
-        button { width: 100%; padding: 12px; background: #128c7e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
-        .link { text-align: center; margin-top: 15px; color: #3498db; cursor: pointer; font-size: 14px; text-decoration: none; font-weight: 500; }
+        :root {
+            --green-dark:   #064e3b;
+            --green-mid:    #065f46;
+            --green-brand:  #059669;
+            --green-light:  #34d399;
+            --green-glow:   #6ee7b7;
+            --amber:        #f59e0b;
+            --red:          #ef4444;
+            --bg:           #f0fdf4;
+            --card-bg:      #ffffff;
+            --text-main:    #064e3b;
+            --text-muted:   #6b7280;
+            --border:       #d1fae5;
+            --shadow:       0 20px 60px rgba(6,78,59,.12), 0 4px 16px rgba(6,78,59,.08);
+            --radius:       18px;
+            --input-bg:     #f0fdf4;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(70px); opacity: .35;
+            animation: drift 14s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 420px; height: 420px; background: radial-gradient(circle, #6ee7b7, #059669); top: -120px; left: -120px; animation-delay: 0s; }
+        .orb-2 { width: 320px; height: 320px; background: radial-gradient(circle, #34d399, #065f46); bottom: -80px; right: -80px; animation-delay: -6s; }
+        .orb-3 { width: 200px; height: 200px; background: radial-gradient(circle, #a7f3d0, #6ee7b7); top: 40%; left: 60%; animation-delay: -3s; }
+
+        @keyframes drift {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(30px, 20px) scale(1.08); }
+        }
+
+        .wrapper {
+            position: relative; z-index: 10;
+            width: 100%; max-width: 420px;
+            padding: 16px;
+        }
+
+        .brand {
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 20px;
+            animation: slideDown .5s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        .brand-icon {
+            width: 64px; height: 64px; border-radius: 20px;
+            background: linear-gradient(135deg, var(--green-brand), var(--green-dark));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; box-shadow: 0 8px 24px rgba(5,150,105,.35);
+            margin-bottom: 10px;
+        }
+        .brand-name { font-size: 22px; font-weight: 700; color: var(--green-dark); }
+        .brand-sub  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 32px 28px 28px;
+            animation: fadeUp .45s cubic-bezier(.34,1.56,.64,1) both .08s;
+            display: none;
+        }
+        .card.active { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header { margin-bottom: 24px; }
+        .card-header h2 { font-size: 20px; font-weight: 700; color: var(--green-dark); margin-bottom: 4px; }
+        .card-header p  { font-size: 13.5px; color: var(--text-muted); }
+
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block; font-size: 12.5px; font-weight: 600;
+            color: var(--green-dark); margin-bottom: 6px; letter-spacing: .3px;
+        }
+        .field-wrap { position: relative; }
+        .field-wrap .icon {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            font-size: 16px; color: var(--text-muted); pointer-events: none;
+        }
+        .field input {
+            width: 100%; padding: 12px 14px 12px 40px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            font-family: inherit; font-size: 14.5px;
+            color: var(--text-main); outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .field input::placeholder { color: #9ca3af; }
+        .field input:focus {
+            border-color: var(--green-brand);
+            box-shadow: 0 0 0 3px rgba(52,211,153,.18);
+            background: #fff;
+        }
+
+        .btn {
+            width: 100%; padding: 13px;
+            border: none; border-radius: 10px;
+            font-family: inherit; font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 6px;
+            position: relative; overflow: hidden;
+            transition: transform .15s, box-shadow .15s;
+        }
+        .btn::after {
+            content: ''; position: absolute; inset: 0;
+            background: rgba(255,255,255,.13); opacity: 0; transition: opacity .2s;
+        }
+        .btn:hover::after { opacity: 1; }
+        .btn:active { transform: scale(.97); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green-brand), var(--green-dark));
+            color: white; box-shadow: 0 6px 20px rgba(5,150,105,.3);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            color: white; box-shadow: 0 6px 20px rgba(34,197,94,.28);
+        }
+        .btn-amber {
+            background: linear-gradient(135deg, #f59e0b, #b45309);
+            color: white; box-shadow: 0 6px 20px rgba(245,158,11,.28);
+        }
+
+        .btn .spinner {
+            display: none; width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,.4);
+            border-top-color: white; border-radius: 50%;
+            animation: spin .7s linear infinite; margin: 0 auto;
+        }
+        .btn.loading .btn-text { display: none; }
+        .btn.loading .spinner  { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .divider {
+            display: flex; align-items: center; gap: 10px;
+            margin: 18px 0 14px;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .divider span { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+        .links { display: flex; flex-direction: column; gap: 8px; }
+        .link-btn {
+            width: 100%; padding: 11px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px; background: transparent;
+            font-family: inherit; font-size: 13.5px;
+            cursor: pointer; transition: all .2s; font-weight: 500;
+        }
+        .link-btn:hover { background: var(--input-bg); }
+        .link-btn.green { color: var(--green-brand); border-color: #a7f3d0; }
+        .link-btn.red   { color: var(--red); border-color: #fecaca; }
+        .link-btn.amber { color: #d97706; border-color: #fde68a; }
+        .link-btn.grey  { color: var(--text-muted); }
+
+        #toast {
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--green-dark); color: white;
+            padding: 12px 22px; border-radius: 30px;
+            font-size: 14px; font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+            z-index: 999; white-space: nowrap;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+            opacity: 0; pointer-events: none;
+        }
+        #toast.show  { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #toast.error { background: var(--red); }
+        #toast.warn  { background: #d97706; }
     </style>
 </head>
 <body>
 
-    <div id="loginPlate" class="card">
-        <div class="title-box">
-            <h2>ফ্যামিলি চ্যাট লগইন</h2>
+<div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="wrapper">
+
+    <div class="brand">
+        <div class="brand-icon">💬</div>
+        <div class="brand-name">ফ্যামিলি চ্যাট</div>
+        <div class="brand-sub">পরিবারের সাথে থাকুন, সবসময়</div>
+    </div>
+
+    <!-- লগইন -->
+    <div id="loginPlate" class="card active">
+        <div class="card-header">
+            <h2>স্বাগতম! 👋</h2>
             <p>আপনার অ্যাকাউন্টে প্রবেশ করুন</p>
         </div>
-        <input type="text" id="lPhone" placeholder="মোবাইল নাম্বার দিন">
-        <input type="password" id="lPass" placeholder="পাসওয়ার্ড দিন">
-        <button onclick="login()">লগইন করুন</button>
-        <div class="link" onclick="showReg()">নতুন অ্যাকাউন্ট তৈরি করুন</div>
-        <div class="link" onclick="showForgot()" style="color: #e67e22;">পাসওয়ার্ড ভুলে গেছেন?</div>
-    </div>
-
-    <div id="regPlate" class="card" style="display:none;">
-        <div class="title-box">
-            <h2 style="color: #28a745;">ফ্যামিলি চ্যাট অ্যাকাউন্ট খুলুন</h2>
-            <p>নতুন সদস্য হিসেবে যোগ দিন</p>
+        <div class="field">
+            <label>মোবাইল নম্বর</label>
+            <div class="field-wrap">
+                <span class="icon">📱</span>
+                <input type="tel" id="lPhone" placeholder="01XXXXXXXXX" autocomplete="tel">
+            </div>
         </div>
-        <input type="text" id="rName" placeholder="আপনার পুরো নাম দিন">
-        <input type="text" id="rPhone" placeholder="মোবাইল নাম্বার দিন">
-        <input type="password" id="rPass" placeholder="একটি নতুন পাসওয়ার্ড দিন">
-        <button onclick="register()" style="background: #28a745;">অ্যাকাউন্ট তৈরি করুন</button>
-        <div class="link" onclick="showLogin()" style="color: #e74c3c;">অ্যাকাউন্ট আছে? লগইন করুন</div>
-    </div>
-
-    <div id="forgotPlate" class="card" style="display:none;">
-        <div class="title-box">
-            <h2 style="color: #e67e22;">পাসওয়ার্ড রিসেট</h2>
-            <p>আপনার নতুন পাসওয়ার্ড সেট করুন</p>
+        <div class="field">
+            <label>পাসওয়ার্ড</label>
+            <div class="field-wrap">
+                <span class="icon">🔒</span>
+                <input type="password" id="lPass" placeholder="আপনার পাসওয়ার্ড" autocomplete="current-password">
+            </div>
         </div>
-        <input type="text" id="fPhone" placeholder="আপনার রেজিস্টার্ড নাম্বার">
-        <input type="password" id="fNewPass" placeholder="নতুন পাসওয়ার্ড দিন">
-        <button onclick="resetPass()" style="background: #e67e22;">পাসওয়ার্ড আপডেট করুন</button>
-        <div class="link" onclick="showLogin()">লগইন পেজে ফিরে যান</div>
+        <button class="btn btn-primary" id="loginBtn" onclick="login()">
+            <span class="btn-text">লগইন করুন →</span>
+            <div class="spinner"></div>
+        </button>
+        <div class="divider"><span>অথবা</span></div>
+        <div class="links">
+            <button class="link-btn green" onclick="showReg()">নতুন অ্যাকাউন্ট তৈরি করুন</button>
+            <button class="link-btn amber" onclick="showForgot()">পাসওয়ার্ড ভুলে গেছেন?</button>
+        </div>
     </div>
 
-    <script>
-        // বাংলা নাম্বার থেকে ইংরেজি নাম্বারে রূপান্তরের ফাংশন
-        function convertToEn(str) {
-            if (!str) return str;
-            const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
-            return str.toString().replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
-        }
+    <!-- রেজিস্ট্রেশন -->
+    <div id="regPlate" class="card">
+        <div class="card-header">
+            <h2>নতুন সদস্য 🎉</h2>
+            <p>পরিবারের চ্যাটে যোগ দিন</p>
+        </div>
+        <div class="field">
+            <label>পুরো নাম</label>
+            <div class="field-wrap">
+                <span class="icon">👤</span>
+                <input type="text" id="rName" placeholder="আপনার নাম লিখুন" autocomplete="name">
+            </div>
+        </div>
+        <div class="field">
+            <label>মোবাইল নম্বর</label>
+            <div class="field-wrap">
+                <span class="icon">📱</span>
+                <input type="tel" id="rPhone" placeholder="01XXXXXXXXX" autocomplete="tel">
+            </div>
+        </div>
+        <div class="field">
+            <label>পাসওয়ার্ড</label>
+            <div class="field-wrap">
+                <span class="icon">🔒</span>
+                <input type="password" id="rPass" placeholder="কমপক্ষে ৬ অক্ষর" autocomplete="new-password">
+            </div>
+        </div>
+        <button class="btn btn-success" id="regBtn" onclick="register()">
+            <span class="btn-text">অ্যাকাউন্ট তৈরি করুন →</span>
+            <div class="spinner"></div>
+        </button>
+        <div class="divider"><span>অথবা</span></div>
+        <div class="links">
+            <button class="link-btn red" onclick="showLogin()">← অ্যাকাউন্ট আছে? লগইন করুন</button>
+        </div>
+    </div>
 
-        function showReg() { hideAll(); document.getElementById('regPlate').style.display='block'; }
-        function showLogin() { hideAll(); document.getElementById('loginPlate').style.display='block'; }
-        function showForgot() { hideAll(); document.getElementById('forgotPlate').style.display='block'; }
-        function hideAll() { 
-            document.getElementById('loginPlate').style.display='none';
-            document.getElementById('regPlate').style.display='none';
-            document.getElementById('forgotPlate').style.display='none';
-        }
+    <!-- পাসওয়ার্ড রিসেট -->
+    <div id="forgotPlate" class="card">
+        <div class="card-header">
+            <h2>পাসওয়ার্ড রিসেট 🔑</h2>
+            <p>নতুন পাসওয়ার্ড সেট করুন</p>
+        </div>
+        <div class="field">
+            <label>রেজিস্টার্ড মোবাইল নম্বর</label>
+            <div class="field-wrap">
+                <span class="icon">📱</span>
+                <input type="tel" id="fPhone" placeholder="01XXXXXXXXX" autocomplete="tel">
+            </div>
+        </div>
+        <div class="field">
+            <label>নতুন পাসওয়ার্ড</label>
+            <div class="field-wrap">
+                <span class="icon">🔒</span>
+                <input type="password" id="fNewPass" placeholder="কমপক্ষে ৬ অক্ষর" autocomplete="new-password">
+            </div>
+        </div>
+        <button class="btn btn-amber" id="resetBtn" onclick="resetPass()">
+            <span class="btn-text">পাসওয়ার্ড আপডেট করুন →</span>
+            <div class="spinner"></div>
+        </button>
+        <div class="divider"><span>অথবা</span></div>
+        <div class="links">
+            <button class="link-btn grey" onclick="showLogin()">← লগইন পেজে ফিরে যান</button>
+        </div>
+    </div>
 
-        // রেজিস্ট্রেশন
-        async function register() {
-            const name = document.getElementById('rName').value;
-            const rawPhone = document.getElementById('rPhone').value;
-            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
-            const pass = document.getElementById('rPass').value;
-            
-            if(!name || !phone || !pass) return alert("দয়া করে সবগুলো ঘর পূরণ করুন!");
+</div>
 
-            try {
-                const res = await fetch('/api/signup', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({userName: name, userNumber: phone, userPassword: pass})
-                });
-                const data = await res.json();
-                alert(data.message);
-                if(data.success) {
-                    localStorage.setItem('loggedInUser', phone);
-                    window.location.assign("home.html");
-                }
-            } catch (err) {
-                alert("সার্ভার কানেকশন নেই!");
+<div id="toast"></div>
+
+<script>
+    const BANGLA = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+    const toEn   = s => s ? s.toString().replace(/[০-৯]/g, d => BANGLA[d]) : s;
+
+    let toastTimer;
+    function toast(msg, type = 'success') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = `show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+    }
+
+    function setLoading(btnId, state) {
+        const btn = document.getElementById(btnId);
+        btn.classList.toggle('loading', state);
+        btn.disabled = state;
+    }
+
+    function showCard(id) {
+        ['loginPlate','regPlate','forgotPlate'].forEach(p => {
+            const el = document.getElementById(p);
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+        const target = document.getElementById(id);
+        target.style.display = 'block';
+        requestAnimationFrame(() => requestAnimationFrame(() => target.classList.add('active')));
+    }
+
+    function showLogin()  { showCard('loginPlate'); }
+    function showReg()    { showCard('regPlate'); }
+    function showForgot() { showCard('forgotPlate'); }
+
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        if (document.getElementById('loginPlate').classList.contains('active'))    login();
+        else if (document.getElementById('regPlate').classList.contains('active')) register();
+        else if (document.getElementById('forgotPlate').classList.contains('active')) resetPass();
+    });
+
+    async function register() {
+        const name  = document.getElementById('rName').value.trim();
+        const phone = toEn(document.getElementById('rPhone').value.trim());
+        const pass  = document.getElementById('rPass').value;
+        if (!name)            return toast('নাম দিতে হবে!', 'error');
+        if (!phone)           return toast('মোবাইল নম্বর দিন!', 'error');
+        if (pass.length < 6)  return toast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে!', 'error');
+        setLoading('regBtn', true);
+        try {
+            const res  = await fetch('/api/signup', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userName: name, userNumber: phone, userPassword: pass})
+            });
+            const data = await res.json();
+            toast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                localStorage.setItem('loggedInUser', phone);
+                setTimeout(() => window.location.assign('home.html'), 1000);
             }
-        }
+        } catch { toast('সার্ভার কানেকশন নেই!', 'error'); }
+        finally  { setLoading('regBtn', false); }
+    }
 
-        // লগইন
-        async function login() {
-            const rawPhone = document.getElementById('lPhone').value;
-            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
-            const pass = document.getElementById('lPass').value;
-            
-            if(!phone || !pass) return alert("দয়া করে নাম্বার ও পাসওয়ার্ড দিন!");
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({userNumber: phone, userPassword: pass})
-                });
-                const data = await res.json();
-                if(data.success) {
-                    localStorage.setItem('loggedInUser', phone);
-                    window.location.assign("home.html");
-                } else {
-                    alert(data.message);
-                }
-            } catch (err) {
-                alert("সার্ভার কানেকশন নেই!");
+    async function login() {
+        const phone = toEn(document.getElementById('lPhone').value.trim());
+        const pass  = document.getElementById('lPass').value;
+        if (!phone) return toast('মোবাইল নম্বর দিন!', 'error');
+        if (!pass)  return toast('পাসওয়ার্ড দিন!', 'error');
+        setLoading('loginBtn', true);
+        try {
+            const res  = await fetch('/api/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userNumber: phone, userPassword: pass})
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('loggedInUser', phone);
+                toast('স্বাগতম! লগইন সফল ✅');
+                setTimeout(() => window.location.assign('home.html'), 900);
+            } else {
+                toast(data.message, 'error');
             }
-        }
+        } catch { toast('সার্ভার কানেকশন নেই!', 'error'); }
+        finally  { setLoading('loginBtn', false); }
+    }
 
-        // পাসওয়ার্ড রিসেট
-        async function resetPass() {
-            const rawPhone = document.getElementById('fPhone').value;
-            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
-            const pass = document.getElementById('fNewPass').value;
-            
-            if(!phone || !pass) return alert("সবগুলো ঘর পূরণ করুন!");
-
-            try {
-                const res = await fetch('/api/reset-password', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({userNumber: phone, newPassword: pass})
-                });
-                const data = await res.json();
-                alert(data.message);
-                if(data.success) showLogin();
-            } catch (err) {
-                alert("সার্ভার কানেকশন নেই!");
-            }
-        }
-    </script>
+    async function resetPass() {
+        const phone = toEn(document.getElementById('fPhone').value.trim());
+        const pass  = document.getElementById('fNewPass').value;
+        if (!phone)           return toast('মোবাইল নম্বর দিন!', 'error');
+        if (pass.length < 6)  return toast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে!', 'error');
+        setLoading('resetBtn', true);
+        try {
+            const res  = await fetch('/api/reset-password', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userNumber: phone, newPassword: pass})
+            });
+            const data = await res.json();
+            toast(data.message, data.success ? 'success' : 'error');
+            if (data.success) setTimeout(showLogin, 1200);
+        } catch { toast('সার্ভার কানেকশন নেই!', 'error'); }
+        finally  { setLoading('resetBtn', false); }
+    }
+</script>
 </body>
 </html>

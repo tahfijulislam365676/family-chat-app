@@ -3,192 +3,429 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Chat - ড্যাশবোর্ড</title>
+    <title>ফ্যামিলি চ্যাট — ড্যাশবোর্ড</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+        :root {
+            --green-dark:   #064e3b;
+            --green-mid:    #065f46;
+            --green-brand:  #059669;
+            --green-light:  #34d399;
+            --green-pale:   #d1fae5;
+            --green-bg:     #f0fdf4;
+            --amber:        #f59e0b;
+            --red:          #ef4444;
+            --text-main:    #111827;
+            --text-sub:     #6b7280;
+            --border:       #e5e7eb;
+            --card-bg:      #ffffff;
+            --nav-h:        68px;
+            --header-h:     70px;
+            --radius:       14px;
+            --shadow-sm:    0 2px 8px rgba(0,0,0,.06);
+            --shadow-md:    0 6px 24px rgba(0,0,0,.09);
+        }
 
-        header { background: #075e54; color: white; padding: 40px 10px; text-align: center; }
-        header h1 { font-size: 30px; text-transform: uppercase; letter-spacing: 1px; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .content { flex: 1; overflow-y: auto; padding: 15px; }
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background: var(--green-bg);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-main);
+        }
 
-        .feature-section { display: none; }
-        .active-section { display: block; }
+        header {
+            height: var(--header-h);
+            background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 12px rgba(6,78,59,.25);
+            position: relative;
+            z-index: 10;
+        }
 
-        .contact-item { background: white; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .contact-item:hover { background: #e9edef; transform: scale(1.01); }
-        
-        .avatar { width: 50px; height: 50px; background: #128c7e; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px; }
-        .info h4 { color: #333; font-size: 18px; }
-        .info p { color: #888; font-size: 13px; }
+        .header-brand { display: flex; align-items: center; gap: 10px; }
+        .header-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: rgba(255,255,255,.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .header-title { color: white; font-size: 18px; font-weight: 700; }
+        .header-sub   { color: rgba(255,255,255,.65); font-size: 12px; }
 
-        .add-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .add-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 16px; }
-        .add-box button { width: 100%; padding: 12px; background: #128c7e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .logout-btn {
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.2);
+            color: white; border-radius: 8px;
+            padding: 7px 13px; font-family: inherit;
+            font-size: 13px; cursor: pointer;
+            transition: background .2s;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,.22); }
 
-        nav { background: white; display: flex; justify-content: space-around; border-top: 1px solid #ddd; padding: 12px 0; position: sticky; bottom: 0; }
-        .nav-btn { background: none; border: none; color: #777; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 14px; gap: 5px; }
-        .nav-btn.active { color: #075e54; font-weight: bold; }
+        .content {
+            flex: 1; overflow-y: auto;
+            padding: 16px; scroll-behavior: smooth;
+        }
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-thumb { background: var(--green-pale); border-radius: 99px; }
+
+        .tab-section { display: none; animation: fadeIn .3s ease; }
+        .tab-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .section-title {
+            font-size: 13px; font-weight: 600; color: var(--text-sub);
+            text-transform: uppercase; letter-spacing: .8px;
+            margin-bottom: 12px; padding-left: 2px;
+        }
+
+        .contact-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 10px; cursor: pointer;
+            transition: transform .18s, box-shadow .18s, border-color .18s;
+            box-shadow: var(--shadow-sm);
+        }
+        .contact-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--green-pale);
+        }
+        .contact-item:active { transform: scale(.98); }
+
+        .avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green-brand), var(--green-dark));
+            color: white; font-size: 20px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(5,150,105,.25);
+        }
+        .contact-info { flex: 1; min-width: 0; }
+        .contact-name {
+            font-size: 15.5px; font-weight: 600; color: var(--text-main);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .contact-phone { font-size: 12.5px; color: var(--text-sub); margin-top: 2px; }
+        .contact-arrow { color: var(--green-pale); font-size: 18px; flex-shrink: 0; }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-sub); }
+        .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 15px; line-height: 1.6; }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: var(--radius); height: 76px; margin-bottom: 10px;
+        }
+        @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+        .search-wrap { position: relative; margin-bottom: 16px; }
+        .search-wrap .s-icon {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%); font-size: 16px; pointer-events: none;
+        }
+        .search-wrap input {
+            width: 100%; padding: 12px 14px 12px 42px;
+            border: 1.5px solid var(--border); border-radius: 30px;
+            background: white; font-family: inherit;
+            font-size: 14.5px; outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            box-shadow: var(--shadow-sm);
+        }
+        .search-wrap input:focus {
+            border-color: var(--green-brand);
+            box-shadow: 0 0 0 3px rgba(52,211,153,.15);
+        }
+
+        .add-card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 22px 20px; box-shadow: var(--shadow-sm);
+        }
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block; font-size: 12.5px; font-weight: 600;
+            color: var(--green-dark); margin-bottom: 6px;
+        }
+        .field-wrap { position: relative; }
+        .field-wrap .icon {
+            position: absolute; left: 12px; top: 50%;
+            transform: translateY(-50%); font-size: 15px; pointer-events: none;
+        }
+        .field input {
+            width: 100%; padding: 11px 14px 11px 38px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            background: var(--green-bg); font-family: inherit;
+            font-size: 14px; color: var(--text-main); outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .field input:focus {
+            border-color: var(--green-brand);
+            box-shadow: 0 0 0 3px rgba(52,211,153,.15);
+            background: white;
+        }
+
+        .save-btn {
+            width: 100%; padding: 13px;
+            background: linear-gradient(135deg, var(--green-brand), var(--green-dark));
+            color: white; border: none; border-radius: 10px;
+            font-family: inherit; font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 4px;
+            transition: transform .15s, box-shadow .15s;
+            box-shadow: 0 6px 20px rgba(5,150,105,.3);
+        }
+        .save-btn:hover { box-shadow: 0 8px 28px rgba(5,150,105,.4); }
+        .save-btn:active { transform: scale(.97); }
+        .save-btn .spinner {
+            display: none; width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,.35);
+            border-top-color: white; border-radius: 50%;
+            animation: spin .7s linear infinite; margin: 0 auto;
+        }
+        .save-btn.loading .btn-text { display: none; }
+        .save-btn.loading .spinner  { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        nav {
+            height: var(--nav-h); background: white;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-around;
+            flex-shrink: 0; box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+            position: relative; z-index: 10;
+        }
+        .nav-btn {
+            background: none; border: none;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+            cursor: pointer; padding: 8px 20px; border-radius: 12px;
+            transition: background .18s; color: var(--text-sub); font-family: inherit;
+        }
+        .nav-btn:hover { background: var(--green-bg); }
+        .nav-btn .nav-icon { font-size: 22px; transition: transform .2s; }
+        .nav-btn .nav-label { font-size: 11.5px; font-weight: 500; }
+        .nav-btn.active { color: var(--green-brand); }
+        .nav-btn.active .nav-icon { transform: scale(1.12); }
+        .nav-btn.active .nav-label { font-weight: 700; }
+
+        #toast {
+            position: fixed; bottom: calc(var(--nav-h) + 14px);
+            left: 50%; transform: translateX(-50%) translateY(60px);
+            background: var(--green-dark); color: white;
+            padding: 11px 20px; border-radius: 30px;
+            font-size: 13.5px; font-weight: 500;
+            box-shadow: 0 6px 24px rgba(0,0,0,.18);
+            z-index: 999; white-space: nowrap;
+            transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+            opacity: 0; pointer-events: none;
+        }
+        #toast.show  { transform: translateX(-50%) translateY(0); opacity: 1; }
+        #toast.error { background: var(--red); }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>ফ্যামিলি চ্যাট</h1>
-    </header>
-
-    <div class="content">
-        <div id="chatTab" class="feature-section active-section">
-            <h3 style="margin-bottom:15px; color:#555;">আপনার কন্টাক্ট লিস্ট</h3>
-            <div id="contactList"></div>
+<header>
+    <div class="header-brand">
+        <div class="header-icon">💬</div>
+        <div>
+            <div class="header-title">ফ্যামিলি চ্যাট</div>
+            <div class="header-sub" id="headerSub">লোড হচ্ছে...</div>
         </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">লগআউট ↩</button>
+</header>
 
-        <div id="searchTab" class="feature-section">
-            <h3 style="margin-bottom:15px; color:#555;">সদস্য খুঁজুন</h3>
-            <input type="text" id="searchInput" onkeyup="filterContacts()" placeholder="নাম লিখে খুঁজুন..." style="width:100%; padding:12px; border-radius:20px; border:1px solid #ddd; outline:none;">
-            <div id="searchResult" style="margin-top:20px;"></div>
-        </div>
+<div class="content">
 
-        <div id="addTab" class="feature-section">
-            <h3 style="margin-bottom:15px; color:#555;">নতুন সদস্য যোগ করুন</h3>
-            <div class="add-box">
-                <input type="text" id="newFriendName" placeholder="বন্ধুর নাম">
-                <input type="text" id="newFriendPhone" placeholder="মোবাইল নাম্বার">
-                <button id="saveBtn" onclick="saveFriend()">কন্টাক্ট সেভ করুন</button>
-            </div>
+    <div id="chatTab" class="tab-section active">
+        <div class="section-title">কন্টাক্ট তালিকা</div>
+        <div id="contactList">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
         </div>
     </div>
 
-    <nav>
-        <button class="nav-btn active" onclick="switchTab('chatTab', this)"><span>💬</span><span>চ্যাট</span></button>
-        <button class="nav-btn" onclick="switchTab('searchTab', this)"><span>🔍</span><span>সার্চ</span></button>
-        <button class="nav-btn" onclick="switchTab('addTab', this)"><span>👤+</span><span>নতুন</span></button>
-    </nav>
+    <div id="searchTab" class="tab-section">
+        <div class="section-title">সদস্য খুঁজুন</div>
+        <div class="search-wrap">
+            <span class="s-icon">🔍</span>
+            <input type="text" id="searchInput" oninput="filterContacts()" placeholder="নাম লিখে খুঁজুন...">
+        </div>
+        <div id="searchResult"></div>
+    </div>
 
-    <script>
-        // বাংলা নাম্বার থেকে ইংরেজি নাম্বারে রূপান্তরের ফাংশন
-        function convertToEn(str) {
-            if (!str) return str;
-            const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
-            return str.toString().replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
+    <div id="addTab" class="tab-section">
+        <div class="section-title">নতুন সদস্য যোগ করুন</div>
+        <div class="add-card">
+            <div class="field">
+                <label>বন্ধুর নাম</label>
+                <div class="field-wrap">
+                    <span class="icon">👤</span>
+                    <input type="text" id="newFriendName" placeholder="পুরো নাম লিখুন">
+                </div>
+            </div>
+            <div class="field">
+                <label>মোবাইল নম্বর</label>
+                <div class="field-wrap">
+                    <span class="icon">📱</span>
+                    <input type="tel" id="newFriendPhone" placeholder="01XXXXXXXXX">
+                </div>
+            </div>
+            <button class="save-btn" id="saveBtn" onclick="saveFriend()">
+                <span class="btn-text">কন্টাক্ট সেভ করুন →</span>
+                <div class="spinner"></div>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<nav>
+    <button class="nav-btn active" id="nav-chat" onclick="switchTab('chatTab','nav-chat')">
+        <span class="nav-icon">💬</span><span class="nav-label">চ্যাট</span>
+    </button>
+    <button class="nav-btn" id="nav-search" onclick="switchTab('searchTab','nav-search')">
+        <span class="nav-icon">🔍</span><span class="nav-label">সার্চ</span>
+    </button>
+    <button class="nav-btn" id="nav-add" onclick="switchTab('addTab','nav-add')">
+        <span class="nav-icon">➕</span><span class="nav-label">নতুন</span>
+    </button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+    const BANGLA = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+    const toEn   = s => s ? s.toString().replace(/[০-৯]/g, d => BANGLA[d]) : s;
+
+    let toastTimer;
+    function toast(msg, type = 'success') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = `show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+    }
+
+    function setLoading(state) {
+        const btn = document.getElementById('saveBtn');
+        btn.classList.toggle('loading', state);
+        btn.disabled = state;
+    }
+
+    const myNumber = toEn(localStorage.getItem('loggedInUser'));
+    if (!myNumber) window.location.assign('index.html');
+    document.getElementById('headerSub').textContent = myNumber || '';
+
+    function logout() {
+        localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('myFamilyContacts');
+        window.location.assign('index.html');
+    }
+
+    function switchTab(tabId, navId) {
+        document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById(navId).classList.add('active');
+    }
+
+    function renderContacts(contacts, containerId = 'contactList') {
+        const area = document.getElementById(containerId);
+        area.innerHTML = '';
+        if (!contacts.length) {
+            area.innerHTML = `<div class="empty-state"><div class="emoji">👥</div><p>এখনো কোনো কন্টাক্ট নেই।<br>নতুন সদস্য যোগ করুন!</p></div>`;
+            return;
         }
-
-        window.onload = loadContacts;
-
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.feature-section').forEach(s => s.classList.remove('active-section'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active-section');
-            btn.classList.add('active');
-        }
-
-        async function saveFriend() {
-            const name = document.getElementById('newFriendName').value.trim();
-            const rawPhone = document.getElementById('newFriendPhone').value.trim();
-            const phone = convertToEn(rawPhone); // কন্টাক্ট নাম্বার ইংরেজি করা হলো
-            const myNumber = convertToEn(localStorage.getItem('loggedInUser')); // নিজের নাম্বারও ইংরেজি নিশ্চিত করা হলো
-            const saveBtn = document.getElementById('saveBtn');
-
-            if (name === "" || phone === "") {
-                alert("দয়া করে নাম এবং নাম্বার দুটোই দিন!");
-                return;
-            }
-
-            const newContact = { name, phone, owner: myNumber };
-            saveBtn.disabled = true;
-            saveBtn.innerText = "সেভ হচ্ছে...";
-
-            try {
-                const response = await fetch('/api/save-contact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newContact)
-                });
-                const result = await response.json();
-                
-                if(result.success) {
-                    alert(name + " কে আপনার তালিকায় যুক্ত করা হয়েছে!");
-                    document.getElementById('newFriendName').value = "";
-                    document.getElementById('newFriendPhone').value = "";
-                    await loadContacts();
-                    switchTab('chatTab', document.querySelectorAll('.nav-btn')[0]);
-                } else {
-                    alert("সেভ করতে সমস্যা হয়েছে। সম্ভবত নাম্বারটি আগেই আছে।");
-                }
-            } catch (err) {
-                alert("সার্ভারের সাথে সংযোগ বিচ্ছিন্ন!");
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.innerText = "কন্টাক্ট সেভ করুন";
-            }
-        }
-
-        async function loadContacts() {
-            const listArea = document.getElementById('contactList');
-            const myNumber = convertToEn(localStorage.getItem('loggedInUser'));
-            
-            if(!myNumber) return;
-            
-            listArea.innerHTML = "<p style='text-align:center;'>লোড হচ্ছে...</p>";
-            
-            try {
-                const res = await fetch('/api/get-contacts?user=' + myNumber);
-                const data = await res.json();
-                
-                if(data.success) {
-                    const contacts = data.contacts;
-                    localStorage.setItem('myFamilyContacts', JSON.stringify(contacts));
-                    renderContacts(contacts);
-                }
-            } catch (err) {
-                const cachedContacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
-                renderContacts(cachedContacts);
-            }
-        }
-
-        function renderContacts(contacts) {
-            const listArea = document.getElementById('contactList');
-            listArea.innerHTML = "";
-            
-            if (contacts.length === 0) {
-                listArea.innerHTML = "<p style='text-align:center; color:#888; margin-top:20px;'>এখনো কোনো কন্টাক্ট সেভ করা হয়নি।</p>";
-                return;
-            }
-
-            contacts.forEach((person) => {
-                // চ্যাট পেজে যাওয়ার সময় নাম্বারটি যেন অবশ্যই ইংরেজিতে যায় তা নিশ্চিত করা
-                const cleanPhone = convertToEn(person.phone);
-                listArea.innerHTML += `
-                    <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${cleanPhone}')">
-                        <div class="avatar">${person.name[0].toUpperCase()}</div>
-                        <div class="info">
-                            <h4>${person.name}</h4>
-                            <p>${cleanPhone}</p>
-                        </div>
+        contacts.forEach(person => {
+            const phone   = toEn(person.phone);
+            const initial = person.name.trim()[0]?.toUpperCase() || '?';
+            const url     = `chat.html?name=${encodeURIComponent(person.name)}&phone=${phone}`;
+            area.innerHTML += `
+                <div class="contact-item" onclick="window.location.assign('${url}')">
+                    <div class="avatar">${initial}</div>
+                    <div class="contact-info">
+                        <div class="contact-name">${person.name}</div>
+                        <div class="contact-phone">${phone}</div>
                     </div>
-                `;
-            });
-        }
+                    <span class="contact-arrow">›</span>
+                </div>`;
+        });
+    }
 
-        function filterContacts() {
-            let input = document.getElementById('searchInput').value.toLowerCase();
-            let resultArea = document.getElementById('searchResult');
-            resultArea.innerHTML = "";
-            let contacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
-
-            contacts.forEach(person => {
-                if(person.name.toLowerCase().includes(input) && input !== "") {
-                    const cleanPhone = convertToEn(person.phone);
-                    resultArea.innerHTML += `
-                        <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${cleanPhone}')">
-                            <div class="avatar">${person.name[0].toUpperCase()}</div>
-                            <div class="info"><h4>${person.name}</h4><p>${cleanPhone}</p></div>
-                        </div>
-                    `;
-                }
-            });
+    async function loadContacts() {
+        try {
+            const res  = await fetch('/api/get-contacts?user=' + myNumber);
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('myFamilyContacts', JSON.stringify(data.contacts));
+                renderContacts(data.contacts);
+            } else throw new Error();
+        } catch {
+            const cached = JSON.parse(localStorage.getItem('myFamilyContacts') || '[]');
+            renderContacts(cached);
+            if (!cached.length) toast('সার্ভার কানেকশন নেই!', 'error');
         }
-    </script>
+    }
+
+    async function saveFriend() {
+        const name  = document.getElementById('newFriendName').value.trim();
+        const phone = toEn(document.getElementById('newFriendPhone').value.trim());
+        if (!name)  return toast('নাম দিতে হবে!', 'error');
+        if (!phone) return toast('মোবাইল নম্বর দিন!', 'error');
+        setLoading(true);
+        try {
+            const res  = await fetch('/api/save-contact', {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body   : JSON.stringify({ name, phone, owner: myNumber })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast(`${name} কে তালিকায় যোগ করা হয়েছে! ✅`);
+                document.getElementById('newFriendName').value  = '';
+                document.getElementById('newFriendPhone').value = '';
+                await loadContacts();
+                switchTab('chatTab', 'nav-chat');
+            } else {
+                toast('সম্ভবত এই নম্বর আগেই আছে!', 'error');
+            }
+        } catch {
+            toast('সার্ভার কানেকশন নেই!', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function filterContacts() {
+        const q        = document.getElementById('searchInput').value.toLowerCase().trim();
+        const contacts = JSON.parse(localStorage.getItem('myFamilyContacts') || '[]');
+        const result   = document.getElementById('searchResult');
+        if (!q) { result.innerHTML = ''; return; }
+        const matched = contacts.filter(p => p.name.toLowerCase().includes(q));
+        if (!matched.length) {
+            result.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>"${q}" নামে কেউ পাওয়া যায়নি।</p></div>`;
+            return;
+        }
+        renderContacts(matched, 'searchResult');
+    }
+
+    window.onload = loadContacts;
+</script>
 </body>
 </html>
