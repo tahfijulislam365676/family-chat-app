@@ -62,7 +62,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
 
     <script>
-        // সকেট কানেকশন আপনার Render লিংকে সেট করা হয়েছে
+        // সকেট কানেকশন আপনার Render লিংকে সেট করা হয়েছে
         const socket = io("https://family-chat-8jfi.onrender.com", {
             transports: ['websocket', 'polling'],
             upgrade: true
@@ -89,10 +89,17 @@
             document.getElementById('avatarIcon').innerText = friendName[0].toUpperCase();
         }
 
-        // কানেকশন হওয়ার সাথে সাথে জয়েন মেসেজ পাঠানো
+        // কানেকশন হওয়ার সাথে সাথে জয়েন মেসেজ পাঠানো এবং অটো-রিকানেকশন ফিক্স
         socket.on('connect', () => {
             if(myPhone) {
-                console.log("সার্ভারে যুক্ত হয়েছি");
+                console.log("সার্ভারে যুক্ত হয়েছি, আইডি: " + socket.id);
+                socket.emit('join', myPhone);
+            }
+        });
+
+        socket.on('reconnect', () => {
+            if(myPhone) {
+                console.log("সার্ভারে পুনরায় যুক্ত হয়েছি...");
                 socket.emit('join', myPhone);
             }
         });
