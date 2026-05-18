@@ -53,6 +53,13 @@
     </div>
 
     <script>
+        // বাংলা নাম্বার থেকে ইংরেজি নাম্বারে রূপান্তরের ফাংশন
+        function convertToEn(str) {
+            if (!str) return str;
+            const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+            return str.toString().replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
+        }
+
         function showReg() { hideAll(); document.getElementById('regPlate').style.display='block'; }
         function showLogin() { hideAll(); document.getElementById('loginPlate').style.display='block'; }
         function showForgot() { hideAll(); document.getElementById('forgotPlate').style.display='block'; }
@@ -62,11 +69,13 @@
             document.getElementById('forgotPlate').style.display='none';
         }
 
-        // রেজিস্ট্রেশন (MongoDB Ready)
+        // রেজিস্ট্রেশন
         async function register() {
             const name = document.getElementById('rName').value;
-            const phone = document.getElementById('rPhone').value;
+            const rawPhone = document.getElementById('rPhone').value;
+            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
             const pass = document.getElementById('rPass').value;
+            
             if(!name || !phone || !pass) return alert("দয়া করে সবগুলো ঘর পূরণ করুন!");
 
             try {
@@ -77,16 +86,21 @@
                 });
                 const data = await res.json();
                 alert(data.message);
-                if(data.success) window.location.assign("home.html");
+                if(data.success) {
+                    localStorage.setItem('loggedInUser', phone);
+                    window.location.assign("home.html");
+                }
             } catch (err) {
-                alert("সার্ভার কানেকশন নেই! এটি পরে MongoDB কানেক্ট করলে কাজ করবে।");
+                alert("সার্ভার কানেকশন নেই!");
             }
         }
 
-        // লগইন (MongoDB Ready)
+        // লগইন
         async function login() {
-            const phone = document.getElementById('lPhone').value;
+            const rawPhone = document.getElementById('lPhone').value;
+            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
             const pass = document.getElementById('lPass').value;
+            
             if(!phone || !pass) return alert("দয়া করে নাম্বার ও পাসওয়ার্ড দিন!");
 
             try {
@@ -97,23 +111,22 @@
                 });
                 const data = await res.json();
                 if(data.success) {
-                    // লগইন সেশন সেভ করা (পরে লাগবে)
                     localStorage.setItem('loggedInUser', phone);
                     window.location.assign("home.html");
                 } else {
                     alert(data.message);
                 }
             } catch (err) {
-                alert("সার্ভার কানেকশন নেই! বর্তমানে এটি কেবল ডিজাইনের জন্য কাজ করবে।");
-                // টেস্ট করার জন্য সরাসরি হোম পেজে যাওয়ার রাস্তা:
-                // window.location.assign("home.html");
+                alert("সার্ভার কানেকশন নেই!");
             }
         }
 
-        // পাসওয়ার্ড রিসেট (MongoDB Ready)
+        // পাসওয়ার্ড রিসেট
         async function resetPass() {
-            const phone = document.getElementById('fPhone').value;
+            const rawPhone = document.getElementById('fPhone').value;
+            const phone = convertToEn(rawPhone); // কনভার্ট করা হলো
             const pass = document.getElementById('fNewPass').value;
+            
             if(!phone || !pass) return alert("সবগুলো ঘর পূরণ করুন!");
 
             try {

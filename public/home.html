@@ -67,6 +67,13 @@
     </nav>
 
     <script>
+        // বাংলা নাম্বার থেকে ইংরেজি নাম্বারে রূপান্তরের ফাংশন
+        function convertToEn(str) {
+            if (!str) return str;
+            const banglaDigits = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+            return str.toString().replace(/[০-৯]/g, function(w) { return banglaDigits[w]; });
+        }
+
         window.onload = loadContacts;
 
         function switchTab(tabId, btn) {
@@ -78,8 +85,9 @@
 
         async function saveFriend() {
             const name = document.getElementById('newFriendName').value.trim();
-            const phone = document.getElementById('newFriendPhone').value.trim();
-            const myNumber = localStorage.getItem('loggedInUser');
+            const rawPhone = document.getElementById('newFriendPhone').value.trim();
+            const phone = convertToEn(rawPhone); // কন্টাক্ট নাম্বার ইংরেজি করা হলো
+            const myNumber = convertToEn(localStorage.getItem('loggedInUser')); // নিজের নাম্বারও ইংরেজি নিশ্চিত করা হলো
             const saveBtn = document.getElementById('saveBtn');
 
             if (name === "" || phone === "") {
@@ -103,16 +111,13 @@
                     alert(name + " কে আপনার তালিকায় যুক্ত করা হয়েছে!");
                     document.getElementById('newFriendName').value = "";
                     document.getElementById('newFriendPhone').value = "";
-                    
-                    // ডাটাবেস থেকে নতুন কন্টাক্টসহ লিস্ট লোড করা
                     await loadContacts();
-                    // সরাসরি চ্যাট লিস্টে নিয়ে যাওয়া
                     switchTab('chatTab', document.querySelectorAll('.nav-btn')[0]);
                 } else {
-                    alert("সেভ করতে সমস্যা হয়েছে। সম্ভবত নাম্বারটি আগেই আছে।");
+                    alert("সেভ করতে সমস্যা হয়েছে। সম্ভবত নাম্বারটি আগেই আছে।");
                 }
             } catch (err) {
-                alert("সার্ভারের সাথে সংযোগ বিচ্ছিন্ন! ইন্টারনেট চেক করুন।");
+                alert("সার্ভারের সাথে সংযোগ বিচ্ছিন্ন!");
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "কন্টাক্ট সেভ করুন";
@@ -121,7 +126,7 @@
 
         async function loadContacts() {
             const listArea = document.getElementById('contactList');
-            const myNumber = localStorage.getItem('loggedInUser');
+            const myNumber = convertToEn(localStorage.getItem('loggedInUser'));
             
             if(!myNumber) return;
             
@@ -137,7 +142,6 @@
                     renderContacts(contacts);
                 }
             } catch (err) {
-                // অফলাইনে থাকলে লোকাল স্টোরেজ থেকে দেখাবে
                 const cachedContacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
                 renderContacts(cachedContacts);
             }
@@ -153,12 +157,14 @@
             }
 
             contacts.forEach((person) => {
+                // চ্যাট পেজে যাওয়ার সময় নাম্বারটি যেন অবশ্যই ইংরেজিতে যায় তা নিশ্চিত করা
+                const cleanPhone = convertToEn(person.phone);
                 listArea.innerHTML += `
-                    <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${person.phone}')">
+                    <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${cleanPhone}')">
                         <div class="avatar">${person.name[0].toUpperCase()}</div>
                         <div class="info">
                             <h4>${person.name}</h4>
-                            <p>${person.phone}</p>
+                            <p>${cleanPhone}</p>
                         </div>
                     </div>
                 `;
@@ -173,10 +179,11 @@
 
             contacts.forEach(person => {
                 if(person.name.toLowerCase().includes(input) && input !== "") {
+                    const cleanPhone = convertToEn(person.phone);
                     resultArea.innerHTML += `
-                        <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${person.phone}')">
+                        <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${cleanPhone}')">
                             <div class="avatar">${person.name[0].toUpperCase()}</div>
-                            <div class="info"><h4>${person.name}</h4><p>${person.phone}</p></div>
+                            <div class="info"><h4>${person.name}</h4><p>${cleanPhone}</p></div>
                         </div>
                     `;
                 }
