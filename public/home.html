@@ -55,7 +55,7 @@
             <div class="add-box">
                 <input type="text" id="newFriendName" placeholder="বন্ধুর নাম">
                 <input type="text" id="newFriendPhone" placeholder="মোবাইল নাম্বার">
-                <button onclick="saveFriend()">কন্টাক্ট সেভ করুন</button>
+                <button id="saveBtn" onclick="saveFriend()">কন্টাক্ট সেভ করুন</button>
             </div>
         </div>
     </div>
@@ -77,9 +77,10 @@
         }
 
         async function saveFriend() {
-            const name = document.getElementById('newFriendName').value;
-            const phone = document.getElementById('newFriendPhone').value;
+            const name = document.getElementById('newFriendName').value.trim();
+            const phone = document.getElementById('newFriendPhone').value.trim();
             const myNumber = localStorage.getItem('loggedInUser');
+            const saveBtn = document.getElementById('saveBtn');
 
             if (name === "" || phone === "") {
                 alert("দয়া করে নাম এবং নাম্বার দুটোই দিন!");
@@ -87,6 +88,8 @@
             }
 
             const newContact = { name, phone, owner: myNumber };
+            saveBtn.disabled = true;
+            saveBtn.innerText = "সেভ হচ্ছে...";
 
             try {
                 const response = await fetch('/api/save-contact', {
@@ -95,47 +98,61 @@
                     body: JSON.stringify(newContact)
                 });
                 const result = await response.json();
-                if(result.success) console.log("ডাটাবেসে সেভ হয়েছে!");
+                
+                if(result.success) {
+                    alert(name + " কে আপনার তালিকায় যুক্ত করা হয়েছে!");
+                    document.getElementById('newFriendName').value = "";
+                    document.getElementById('newFriendPhone').value = "";
+                    
+                    // ডাটাবেস থেকে নতুন কন্টাক্টসহ লিস্ট লোড করা
+                    await loadContacts();
+                    // সরাসরি চ্যাট লিস্টে নিয়ে যাওয়া
+                    switchTab('chatTab', document.querySelectorAll('.nav-btn')[0]);
+                } else {
+                    alert("সেভ করতে সমস্যা হয়েছে। সম্ভবত নাম্বারটি আগেই আছে।");
+                }
             } catch (err) {
-                console.log("অফলাইন মোড।");
+                alert("সার্ভারের সাথে সংযোগ বিচ্ছিন্ন! ইন্টারনেট চেক করুন।");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "কন্টাক্ট সেভ করুন";
             }
-
-            let contacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
-            contacts.push(newContact);
-            localStorage.setItem('myFamilyContacts', JSON.stringify(contacts));
-
-            alert(name + " কে আপনার তালিকায় যুক্ত করা হয়েছে!");
-            document.getElementById('newFriendName').value = "";
-            document.getElementById('newFriendPhone').value = "";
-
-            loadContacts();
-            switchTab('chatTab', document.querySelectorAll('.nav-btn')[0]);
         }
 
         async function loadContacts() {
             const listArea = document.getElementById('contactList');
+            const myNumber = localStorage.getItem('loggedInUser');
+            
+            if(!myNumber) return;
+            
             listArea.innerHTML = "<p style='text-align:center;'>লোড হচ্ছে...</p>";
             
-            let contacts = [];
             try {
-                const res = await fetch('/api/get-contacts?user=' + localStorage.getItem('loggedInUser'));
+                const res = await fetch('/api/get-contacts?user=' + myNumber);
                 const data = await res.json();
+                
                 if(data.success) {
-                    contacts = data.contacts;
+                    const contacts = data.contacts;
                     localStorage.setItem('myFamilyContacts', JSON.stringify(contacts));
+                    renderContacts(contacts);
                 }
             } catch (err) {
-                contacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
+                // অফলাইনে থাকলে লোকাল স্টোরেজ থেকে দেখাবে
+                const cachedContacts = JSON.parse(localStorage.getItem('myFamilyContacts')) || [];
+                renderContacts(cachedContacts);
             }
+        }
 
+        function renderContacts(contacts) {
+            const listArea = document.getElementById('contactList');
             listArea.innerHTML = "";
+            
             if (contacts.length === 0) {
-                listArea.innerHTML = "<p style='text-align:center; color:#888;'>এখনো কোনো কন্টাক্ট সেভ করা হয়নি।</p>";
+                listArea.innerHTML = "<p style='text-align:center; color:#888; margin-top:20px;'>এখনো কোনো কন্টাক্ট সেভ করা হয়নি।</p>";
                 return;
             }
 
             contacts.forEach((person) => {
-                // এখানে name এবং phone উভয়ই পাঠানো হচ্ছে চ্যাট পেজে
                 listArea.innerHTML += `
                     <div class="contact-item" onclick="window.location.assign('chat.html?name=${encodeURIComponent(person.name)}&phone=${person.phone}')">
                         <div class="avatar">${person.name[0].toUpperCase()}</div>

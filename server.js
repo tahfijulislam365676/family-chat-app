@@ -10,19 +10,16 @@ const io = socketIo(server);
 app.use(express.static('public'));
 app.use(express.json());
 
-// --- MongoDB Atlas অনলাইন কানেকশন (ভেরিফাইড লিংক) ---
+// --- MongoDB Atlas অনলাইন কানেকশন ---
 const DB_URI = "mongodb+srv://tahfijulislam365676_db_user:J98w7SWNscFksfRG@cluster0.9pu3xn3.mongodb.net/familyChat?retryWrites=true&w=majority";
 
 mongoose.connect(DB_URI)
     .then(() => console.log("অনলাইন ডাটাবেস (MongoDB Atlas) সফলভাবে কানেক্ট হয়েছে! ✅"))
     .catch(err => {
         console.log("ডাটাবেস কানেকশনে সমস্যা হচ্ছে! এরর টাইপ:", err.name);
-        console.log("সম্ভাব্য কারণ: আপনার আইপি (IP) এখনো MongoDB-তে অ্যাক্টিভ হয়নি অথবা ইন্টারনেট ব্লক করছে।");
     });
 
-// --- ডাটাবেস স্কিমা ---
-
-// ইউজার স্কিমা
+// --- ডাটাবেস স্কিমা (অপরিবর্তিত) ---
 const UserSchema = new mongoose.Schema({
     userName: String,
     userNumber: { type: String, unique: true },
@@ -30,15 +27,13 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// কন্টাক্ট স্কিমা
 const ContactSchema = new mongoose.Schema({
     name: String,
     phone: String,
-    owner: String 
+    owner: String
 });
 const Contact = mongoose.model('Contact', ContactSchema);
 
-// মেসেজ স্কিমা
 const MessageSchema = new mongoose.Schema({
     sender: String,
     receiver: String,
@@ -47,20 +42,17 @@ const MessageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', MessageSchema);
 
-// --- এপিআই রাউটস ---
-
-// রেজিস্ট্রেশন
+// --- এপিআই রাউটস (অপরিবর্তিত) ---
 app.post('/api/signup', async (req, res) => {
     try {
         const newUser = new User(req.body);
         await newUser.save();
         res.json({ success: true, message: "অ্যাকাউন্ট তৈরি সফল!" });
-    } catch (err) { 
-        res.json({ success: false, message: "এই নাম্বারটি আগেই নিবন্ধিত!" }); 
+    } catch (err) {
+        res.json({ success: false, message: "এই নাম্বারটি আগেই নিবন্ধিত!" });
     }
 });
 
-// লগইন
 app.post('/api/login', async (req, res) => {
     try {
         const user = await User.findOne({ userNumber: req.body.userNumber, userPassword: req.body.userPassword });
@@ -71,18 +63,16 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// কন্টাক্ট সেভ করা
 app.post('/api/save-contact', async (req, res) => {
     try {
         const newContact = new Contact(req.body);
         await newContact.save();
         res.json({ success: true });
-    } catch (err) { 
-        res.json({ success: false }); 
+    } catch (err) {
+        res.json({ success: false });
     }
 });
 
-// কন্টাক্ট লিস্ট লোড করা
 app.get('/api/get-contacts', async (req, res) => {
     try {
         const contacts = await Contact.find({ owner: req.query.user });
@@ -92,7 +82,6 @@ app.get('/api/get-contacts', async (req, res) => {
     }
 });
 
-// পুরনো মেসেজ লোড করা
 app.get('/api/get-messages', async (req, res) => {
     try {
         const { from, to } = req.query;
@@ -108,19 +97,18 @@ app.get('/api/get-messages', async (req, res) => {
     }
 });
 
-// পাসওয়ার্ড রিসেট
 app.post('/api/reset-password', async (req, res) => {
     try {
         const { userNumber, newPassword } = req.body;
         const user = await User.findOneAndUpdate({ userNumber: userNumber }, { userPassword: newPassword });
         if(user) res.json({ success: true, message: "পাসওয়ার্ড সফলভাবে আপডেট হয়েছে!" });
         else res.json({ success: false, message: "এই নাম্বারে কোনো ইউজার পাওয়া যায়নি!" });
-    } catch (err) { 
-        res.json({ success: false, message: "রিসেট করতে সমস্যা হয়েছে!" }); 
+    } catch (err) {
+        res.json({ success: false, message: "রিসেট করতে সমস্যা হয়েছে!" });
     }
 });
 
-// --- সকেট লজিক ---
+// --- সকেট লজিক (ভিডিও কল সংশোধনসহ) ---
 io.on('connection', (socket) => {
     socket.on('join', (myNumber) => {
         socket.join(myNumber);
@@ -129,10 +117,10 @@ io.on('connection', (socket) => {
 
     socket.on('send-msg', async (data) => {
         try {
-            const newMsg = new Message({ 
-                sender: data.from, 
-                receiver: data.to, 
-                message: data.msg 
+            const newMsg = new Message({
+                sender: data.from,
+                receiver: data.to,
+                message: data.msg
             });
             await newMsg.save();
             io.to(data.to).emit('receive-msg', data);
@@ -141,8 +129,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ভিডিও কল শুরু (সংশোধিত: signalData এর বদলে সরাসরি signal পাঠানো হচ্ছে)
     socket.on('call-user', (data) => {
-        io.to(data.to).emit('incoming-call', data);
+        io.to(data.to).emit('incoming-call', {
+            from: data.from,
+            signal: data.signal || data.signalData, // দুই নামেই সাপোর্ট রাখা হলো
+            type: data.type
+        });
+    });
+
+    socket.on('answer-call', (data) => {
+        io.to(data.to).emit('call-accepted', data.signal);
+    });
+
+    socket.on('webrtc-signal', (data) => {
+        io.to(data.to).emit('webrtc-signal', data);
+    });
+
+    socket.on('end-call', (data) => {
+        io.to(data.to).emit('call-ended');
     });
     
     socket.on('disconnect', () => {
@@ -150,6 +155,5 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- লাইভ সার্ভার পোর্ট সেটআপ ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`সার্ভার চালু হয়েছে ${PORT} পোর্টে...`));

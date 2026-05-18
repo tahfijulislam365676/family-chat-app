@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Chat - মেসেঞ্জার</title>
     <style>
-        /* আপনার ডিজাইন অপরিবর্তিত রাখা হয়েছে */
+        /* আপনার ডিজাইন অপরিবর্তিত রাখা হয়েছে */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #e5ddd5; display: flex; flex-direction: column; height: 100vh; }
         header { background: #075e54; color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
@@ -22,6 +22,8 @@
         #sendBtn { background: #128c7e; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 20px; }
         .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 200; flex-direction: column; align-items: center; justify-content: center; }
         video { width: 90%; border-radius: 15px; border: 2px solid #128c7e; background: #222; }
+        #remoteVideo { width: 90%; margin-top: 10px; }
+        #localVideo { width: 30%; position: absolute; bottom: 100px; right: 20px; border: 2px solid white; z-index: 210; }
         .end-call-btn { margin-top: 30px; background: #ff3b30; color: white; border: none; padding: 15px 40px; border-radius: 30px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -46,6 +48,7 @@
 
     <div id="callOverlay" class="call-overlay">
         <h2 id="callStatus" style="margin-bottom: 20px;">কল হচ্ছে...</h2>
+        <video id="remoteVideo" autoplay playsinline></video>
         <video id="localVideo" autoplay muted playsinline></video>
         <button class="end-call-btn" onclick="endCall()">কল কাটুন</button>
     </div>
@@ -56,6 +59,7 @@
     </footer>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
 
     <script>
         const socket = io();
@@ -65,18 +69,26 @@
         const friendPhone = urlParams.get('phone'); 
         const myPhone = localStorage.getItem('loggedInUser'); 
 
-        // ১. হেডার সেটআপ
+        let myStream;
+        let peer;
+
+        // STUN সার্ভার কনফিগারেশন (ইন্টারনেটে কল করার জন্য এটি জরুরি)
+        const peerConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
         if(friendName) {
             document.getElementById('chattingWithName').innerText = friendName;
             document.getElementById('avatarIcon').innerText = friendName[0].toUpperCase();
         }
 
-        // ২. সকেট রুমে জয়েন (নিজের নাম্বার দিয়ে)
         if(myPhone) {
             socket.emit('join', myPhone);
         }
 
-        // ৩. মেসেজ লোড করার ফাংশন
         async function loadOldMessages() {
             if(!myPhone || !friendPhone) return;
             try {
@@ -89,18 +101,14 @@
                         appendMessage(m.message, m.sender === myPhone ? 'sent' : 'received');
                     });
                 }
-            } catch (err) { 
-                console.error("Old messages could not be loaded."); 
-            }
+            } catch (err) { console.error("Error loading messages."); }
         }
         
         window.onload = loadOldMessages;
 
-        // ৪. মেসেজ পাঠানো
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            
             if(message !== "" && myPhone && friendPhone) {
                 const data = { from: myPhone, to: friendPhone, msg: message };
                 socket.emit('send-msg', data); 
@@ -118,57 +126,96 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // ৫. রিয়েল-টাইম মেসেজ রিসিভ
         socket.on('receive-msg', (data) => {
             if(data.from === friendPhone) {
                 appendMessage(data.msg, 'received');
             }
         });
 
-        // ৬. ভিডিও/অডিও কল (ইন্টারনেটে কাজ করার জন্য STUN কনফিগারেশন)
-        let myStream;
-        const iceConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
+        // ভিডিও কল ফাংশন
         async function startCall(type) {
             try {
-                document.getElementById('callStatus').innerText = `${friendName}-কে ${type} কল করা হচ্ছে...`;
-                document.getElementById('callOverlay').style.display = 'flex';
-                
                 myStream = await navigator.mediaDevices.getUserMedia({
                     video: type === 'ভিডিও',
                     audio: true
                 });
                 
+                document.getElementById('callOverlay').style.display = 'flex';
                 document.getElementById('localVideo').srcObject = myStream;
-                
-                // সার্ভারের মাধ্যমে কল সিগন্যাল পাঠানো
-                socket.emit('call-user', { from: myPhone, to: friendPhone, type: type });
+                document.getElementById('callStatus').innerText = "কল যাচ্ছে...";
+
+                peer = new SimplePeer({ 
+                    initiator: true, 
+                    trickle: false, 
+                    stream: myStream,
+                    config: peerConfig 
+                });
+
+                peer.on('signal', signal => {
+                    // সার্ভারের সাথে মিল রেখে 'signal' কি ব্যবহার করা হয়েছে
+                    socket.emit('call-user', { from: myPhone, to: friendPhone, signal: signal, type: type });
+                });
+
+                peer.on('stream', stream => {
+                    document.getElementById('remoteVideo').srcObject = stream;
+                    document.getElementById('callStatus').innerText = "কথা বলুন";
+                });
 
             } catch (err) {
-                alert("ক্যামেরা বা মাইক্রোফোন পারমিশন প্রয়োজন!");
+                alert("ক্যামেরা বা মাইক্রোফোন পারমিশন পাওয়া যায়নি!");
                 document.getElementById('callOverlay').style.display = 'none';
             }
         }
 
-        function endCall() {
-            if(myStream) {
-                myStream.getTracks().forEach(track => track.stop());
-            }
-            document.getElementById('callOverlay').style.display = 'none';
-            socket.emit('end-call', { to: friendPhone });
-        }
-
-        // কল রিসিভ করা
-        socket.on('incoming-call', (data) => {
+        // কল রিসিভ করার লজিক
+        socket.on('incoming-call', async (data) => {
             if(data.from === friendPhone) {
-                const accept = confirm(`${friendName} থেকে একটি ${data.type} কল আসছে। রিসিভ করবেন?`);
+                const accept = confirm(`${friendName} থেকে ${data.type} কল আসছে। রিসিভ করবেন?`);
                 if(accept) {
-                    startCall(data.type);
+                    document.getElementById('callOverlay').style.display = 'flex';
+                    myStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: data.type === 'ভিডিও', 
+                        audio: true 
+                    });
+                    document.getElementById('localVideo').srcObject = myStream;
+
+                    peer = new SimplePeer({ 
+                        initiator: false, 
+                        trickle: false, 
+                        stream: myStream,
+                        config: peerConfig 
+                    });
+
+                    peer.on('signal', signal => {
+                        socket.emit('answer-call', { signal: signal, to: data.from });
+                    });
+
+                    peer.on('stream', stream => {
+                        document.getElementById('remoteVideo').srcObject = stream;
+                        document.getElementById('callStatus').innerText = "কথা বলুন";
+                    });
+
+                    peer.signal(data.signal);
                 }
             }
         });
 
-        // এন্টার চাপলে মেসেজ যাবে
+        socket.on('call-accepted', signal => {
+            if(peer) peer.signal(signal);
+        });
+
+        function endCall() {
+            if(myStream) myStream.getTracks().forEach(track => track.stop());
+            document.getElementById('callOverlay').style.display = 'none';
+            socket.emit('end-call', { to: friendPhone });
+            location.reload(); 
+        }
+
+        socket.on('call-ended', () => {
+            alert("কল শেষ হয়েছে");
+            location.reload();
+        });
+
         document.getElementById('messageInput').addEventListener("keypress", function(e) {
             if (e.key === "Enter") sendMessage();
         });
