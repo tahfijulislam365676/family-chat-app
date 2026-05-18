@@ -62,9 +62,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
 
     <script>
-        const socket = io();
+        // সংশোধিত সকেট কানেকশন যা অনলাইনে ডেটা ট্রান্সফার নিশ্চিত করবে
+        const socket = io({
+            transports: ['websocket', 'polling'],
+            upgrade: true
+        });
+
         const urlParams = new URLSearchParams(window.location.search);
-        
         const friendName = urlParams.get('name'); 
         const friendPhone = urlParams.get('phone'); 
         const myPhone = localStorage.getItem('loggedInUser'); 
@@ -72,11 +76,11 @@
         let myStream;
         let peer;
 
-        // STUN সার্ভার কনফিগারেশন (ইন্টারনেটে কল করার জন্য এটি জরুরি)
         const peerConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
             ]
         };
 
@@ -85,8 +89,12 @@
             document.getElementById('avatarIcon').innerText = friendName[0].toUpperCase();
         }
 
+        // সকেট রুমে জয়েন করা নিশ্চিত করা
         if(myPhone) {
-            socket.emit('join', myPhone);
+            socket.on('connect', () => {
+                console.log("সার্ভারে যুক্ত হয়েছি");
+                socket.emit('join', myPhone);
+            });
         }
 
         async function loadOldMessages() {
@@ -101,7 +109,7 @@
                         appendMessage(m.message, m.sender === myPhone ? 'sent' : 'received');
                     });
                 }
-            } catch (err) { console.error("Error loading messages."); }
+            } catch (err) { console.error("মেসেজ লোড করা যায়নি"); }
         }
         
         window.onload = loadOldMessages;
@@ -126,13 +134,14 @@
             area.scrollTop = area.scrollHeight;
         }
 
+        // রিয়েল টাইম মেসেজ রিসিভ করা
         socket.on('receive-msg', (data) => {
             if(data.from === friendPhone) {
                 appendMessage(data.msg, 'received');
             }
         });
 
-        // ভিডিও কল ফাংশন
+        // ভিডিও কল শুরু করা
         async function startCall(type) {
             try {
                 myStream = await navigator.mediaDevices.getUserMedia({
@@ -152,7 +161,6 @@
                 });
 
                 peer.on('signal', signal => {
-                    // সার্ভারের সাথে মিল রেখে 'signal' কি ব্যবহার করা হয়েছে
                     socket.emit('call-user', { from: myPhone, to: friendPhone, signal: signal, type: type });
                 });
 
@@ -162,40 +170,44 @@
                 });
 
             } catch (err) {
-                alert("ক্যামেরা বা মাইক্রোফোন পারমিশন পাওয়া যায়নি!");
+                alert("ক্যামেরা বা মাইক্রোফোন পারমিশন দিন!");
                 document.getElementById('callOverlay').style.display = 'none';
             }
         }
 
-        // কল রিসিভ করার লজিক
+        // কল রিসিভ করা
         socket.on('incoming-call', async (data) => {
             if(data.from === friendPhone) {
                 const accept = confirm(`${friendName} থেকে ${data.type} কল আসছে। রিসিভ করবেন?`);
                 if(accept) {
                     document.getElementById('callOverlay').style.display = 'flex';
-                    myStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: data.type === 'ভিডিও', 
-                        audio: true 
-                    });
-                    document.getElementById('localVideo').srcObject = myStream;
+                    try {
+                        myStream = await navigator.mediaDevices.getUserMedia({ 
+                            video: data.type === 'ভিডিও', 
+                            audio: true 
+                        });
+                        document.getElementById('localVideo').srcObject = myStream;
 
-                    peer = new SimplePeer({ 
-                        initiator: false, 
-                        trickle: false, 
-                        stream: myStream,
-                        config: peerConfig 
-                    });
+                        peer = new SimplePeer({ 
+                            initiator: false, 
+                            trickle: false, 
+                            stream: myStream,
+                            config: peerConfig 
+                        });
 
-                    peer.on('signal', signal => {
-                        socket.emit('answer-call', { signal: signal, to: data.from });
-                    });
+                        peer.on('signal', signal => {
+                            socket.emit('answer-call', { signal: signal, to: data.from });
+                        });
 
-                    peer.on('stream', stream => {
-                        document.getElementById('remoteVideo').srcObject = stream;
-                        document.getElementById('callStatus').innerText = "কথা বলুন";
-                    });
+                        peer.on('stream', stream => {
+                            document.getElementById('remoteVideo').srcObject = stream;
+                            document.getElementById('callStatus').innerText = "কথা বলুন";
+                        });
 
-                    peer.signal(data.signal);
+                        peer.signal(data.signal);
+                    } catch (e) {
+                        alert("কল রিসিভ করতে সমস্যা হয়েছে!");
+                    }
                 }
             }
         });
@@ -205,7 +217,9 @@
         });
 
         function endCall() {
-            if(myStream) myStream.getTracks().forEach(track => track.stop());
+            if(myStream) {
+                myStream.getTracks().forEach(track => track.stop());
+            }
             document.getElementById('callOverlay').style.display = 'none';
             socket.emit('end-call', { to: friendPhone });
             location.reload(); 
