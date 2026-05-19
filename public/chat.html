@@ -366,7 +366,7 @@
         <video id="localVideo" autoplay muted playsinline></video>
         <div class="call-controls">
             <button class="ctrl-btn mute" id="muteBtn" onclick="toggleMute()">🎤</button>
-            <button class="ctrl-btn end" onclick="endCall()">📵</button>
+            <button class="ctrl-btn end" onclick="endCall(true)"></div>📵</button>
             <button class="ctrl-btn cam" id="camBtn" onclick="toggleCam()">📷</button>
         </div>
     </div>
@@ -423,7 +423,7 @@
             ]
         };
 
-        let myStream, peer, isMuted = false, isCamOff = false;
+        let myStream = null, peer = null, isMuted = false, isCamOff = false;
         let pendingSignal = null, pendingCallType = null;
 
         if (friendName) {
@@ -444,7 +444,7 @@
                 peer = new SimplePeer({ initiator: true, trickle: true, stream: myStream, config: peerConfig });
                 setupPeerEvents(type);
             } catch (err) {
-                alert('ক্যামেরা বা মাইক্রোফোন পারমিশন প্রয়োজন!');
+                alert('ক্যামেরা বা মাইক্রোফোন পারমিশন প্রয়োজন!');
             }
         }
 
@@ -453,6 +453,7 @@
             const localVid = document.getElementById('localVideo');
             localVid.srcObject = myStream;
             document.getElementById('callStatusName').innerText = friendName || 'ইউজার';
+            document.getElementById('callStatusText').innerText = 'কল যাচ্ছে...';
             
             if (type !== 'ভিডিও') {
                 document.getElementById('remoteVideo').style.display = 'none';
@@ -467,7 +468,7 @@
             pendingSignal = data.signal;
             pendingCallType = data.type;
             document.getElementById('incomingAvatar').innerText = (friendName || '?')[0].toUpperCase();
-            document.getElementById('incomingName').innerText = friendName;
+            document.getElementById('incomingName').innerText = friendName || "ইউজার";
             document.getElementById('incomingType').innerText = data.type + ' কল আসছে...';
             document.getElementById('incomingOverlay').classList.add('active');
         });
@@ -483,13 +484,14 @@
                 setupPeerEvents(pendingCallType);
                 peer.signal(pendingSignal);
             } catch (e) {
-                alert('কল রিসিভ করা সম্ভব হয়নি!');
+                alert('কল রিসিভ করা সম্ভব হয়নি!');
             }
         }
 
         function declineCall() {
             document.getElementById('incomingOverlay').classList.remove('active');
             socket.emit('end-call', { to: friendPhone });
+            resetCallState();
         }
 
         function setupPeerEvents(type) {
@@ -504,15 +506,54 @@
                 document.getElementById('callStatusText').innerText = 'সংযুক্ত';
             });
 
-            peer.on('close', () => endCall());
+            peer.on('close', () => resetCallState());
+            peer.on('error', (err) => {
+                console.error(err);
+                endCall(true);
+            });
         }
 
-        socket.on('call-accepted', signal => { if (peer) peer.signal(signal); });
-        socket.on('call-ended', () => { location.reload(); });
+        socket.on('call-accepted', signal => { 
+            if (peer) peer.signal(signal); 
+        });
+        
+        socket.on('call-ended', () => { 
+            resetCallState(); 
+        });
 
-        function endCall() {
-            socket.emit('end-call', { to: friendPhone });
-            location.reload();
+        function endCall(sendNotify = false) {
+            if (sendNotify) {
+                socket.emit('end-call', { to: friendPhone });
+            }
+            resetCallState();
+        }
+
+        function resetCallState() {
+            // ১. ওভারলে এবং ইন্টারফেস হাইড করা
+            document.getElementById('callOverlay').classList.remove('active');
+            document.getElementById('incomingOverlay').classList.remove('active');
+            
+            // ২. ক্যামেরা/মাইক্রোফোন ট্র্যাক স্টপ করা (যাতে হার্ডওয়্যার লাইট বন্ধ হয়ে যায়)
+            if (myStream) {
+                myStream.getTracks().forEach(track => track.stop());
+                myStream = null;
+            }
+            
+            // ৩. পিয়ার কানেকশন ডেস্ট্রয় করা
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+
+            // ৪. ভিডিও এলিমেন্টগুলো খালি করা
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            
+            // বাটনের আইকন রিসেট করা
+            isMuted = false;
+            isCamOff = false;
+            document.getElementById('muteBtn').innerText = '🎤';
+            document.getElementById('camBtn').innerText = '📷';
         }
 
         function toggleMute() {

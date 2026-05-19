@@ -19,7 +19,7 @@ const app    = express();
 const server = http.createServer(app);
 
 // ─── সিকিউরিটি মিডলওয়্যার ────────────────────────────────
-app.use(helmet());                          // HTTP হেডার সুরক্ষা
+app.use(helmet());                           // HTTP হেডার সুরক্ষা
 app.use(morgan('dev'));                      // রিকোয়েস্ট লগিং
 app.use(express.static('public'));
 app.use(express.json({ limit: '10kb' }));  // বড় পেলোড ব্লক
@@ -39,14 +39,11 @@ const io = socketIo(server, {
 });
 
 // ============================================================
-//  ডাটাবেস কানেকশন
+//  ডাটাবেস কানেকশন (সঠিক লজিক নিচে দেওয়া হলো)
 // ============================================================
-const DB_URI = process.env.MONGODB_URI;
 
-if (!DB_URI) {
-    console.error('❌  MONGODB_URI এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা হয়নি!');
-    process.exit(1);
-}
+// সরাসরি আপনার কানেকশন স্ট্রিং ব্যবহার করছি
+const DB_URI = "mongodb+srv://tahfijulislam365676_db_user:J98w7SWNscFksfRG@cluster0.9pu3xn3.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(DB_URI)
     .then(() => console.log('✅  MongoDB Atlas সফলভাবে কানেক্ট হয়েছে!'))
